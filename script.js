@@ -51,15 +51,47 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const currentView = document.getElementById("current-view");
 
+
+    const taskList = document.getElementById("task-list");
+    const emptyState = document.getElementById("empty-state");
+
+    const taskFilters = document.querySelector(".task-filters");
+    const taskListSection = document.querySelector(".task-list-section");
+    const taskActions = document.querySelector(".task-actions");
+
+    const addTaskModal = document.querySelector(".add-task-modal");
+
+    const binNav = document.getElementById("bin-nav");
+    const binSection = document.getElementById("bin-section");
+    const binTaskList = document.getElementById("bin-task-list");
+    const binEmptyState = document.getElementById("bin-empty-state");
+    const emptyBinBtn = document.getElementById("empty-bin-btn");
+
     const sidebarButtons = [
         allTasksBtn,
         todayTasksBtn,
         importantTasksBtn,
-        completedTasksBtn
+        completedTasksBtn,
+        binNav
     ];
 
-    const taskList = document.getElementById("task-list");
-    const emptyState = document.getElementById("empty-state");
+
+    // EDIT TASK MODAL ELEMENTS
+    const editTaskModal = document.getElementById("editTaskModal");
+    const editTaskForm = document.getElementById("editTaskForm");
+
+    const editTaskTitle = document.getElementById("editTaskTitle");
+    const editTaskDescription = document.getElementById("editTaskDescription");
+    const editTaskDate = document.getElementById("editTaskDate");
+    const editTaskPriority = document.getElementById("editTaskPriority");
+
+    const closeTaskBtn = document.getElementById("close-task-btn");
+    const modalOverlay = document.getElementById("modal-overlay");
+
+    const closeEditModal = document.getElementById("closeEditModal");
+    const cancelEdit = document.getElementById("cancelEdit");
+
+    let editingTask = null;
 
     const taskSearch = document.getElementById("task-search");
     const priorityFilter = document.getElementById("priority-filter");
@@ -69,16 +101,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // ===================================
-    // 2. ADD TASK SECTION VISIBILITY
-    // ===================================
+// ADD NEW TASK MODAL
+// ===================================
 
-    addTaskBtn.addEventListener("click", function () {
-        addTaskSection.classList.toggle("show");
-    });
+// OPEN MODAL
+addTaskBtn.addEventListener("click", function () {
+    addTaskSection.classList.add("show");
+});
 
-    cancelTaskBtn.addEventListener("click", function () {
-        addTaskSection.classList.remove("show");
-    });
+// CLOSE MODAL
+function closeAddTaskModal() {
+    addTaskSection.classList.remove("show");
+}
+
+// CLOSE BUTTON (X)
+closeTaskBtn.addEventListener("click", closeAddTaskModal);
+
+// CANCEL BUTTON
+cancelTaskBtn.addEventListener("click", closeAddTaskModal);
+
+// CLICK OUTSIDE MODAL
+modalOverlay.addEventListener("click", closeAddTaskModal);
+
 
 
     // ===================================
@@ -110,6 +154,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="priority-badge high">HIGH</span>
                 </div>
 
+                <button class="delete-task-btn" type="button" title="Delete task">
+                <i class="fas fa-trash-alt"></i>
+                </button>
+
             </div>
         </li>
 
@@ -136,6 +184,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="priority-badge low">LOW</span>
                 </div>
 
+                <button class="delete-task-btn" type="button" title="Delete task">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+
             </div>
         </li>
 
@@ -161,6 +213,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="task-date">November 2, 2026</span>
                     <span class="priority-badge medium">MEDIUM</span>
                 </div>
+
+                <button class="delete-task-btn" type="button" title="Delete task">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
 
             </div>
         </li>
@@ -342,34 +398,47 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    // ===================================
-    // 5. SIDEBAR NAVIGATION
-    // ===================================
+// ===================================
+// SIDEBAR TAB SWITCHING
+// ===================================
 
-    function switchTab(tab, clickedButton) {
+function switchTab(tab, clickedButton) {
 
-        // Remove active highlight from all buttons
-        sidebarButtons.forEach(function (button) {
-            button.classList.remove("active");
-        });
+    // Remove active highlight from all buttons
+    sidebarButtons.forEach(function (button) {
+        button.classList.remove("active");
+    });
 
+    // Highlight selected button
+    clickedButton.classList.add("active");
 
-        // Highlight selected button
-        clickedButton.classList.add("active");
+    // Update page heading
+    currentView.textContent = tab;
 
+    // Remember selected sidebar tab
+    activeTab = tab;
+    document.body.classList.toggle("bin-view", tab === "Bin");
 
-        // Update page heading
-        currentView.textContent = tab;
+    console.log("Current active tab:", activeTab);
 
+    // Check if Bin is selected
+    const isBin = tab === "Bin";
 
-        // Remember selected sidebar tab
-        activeTab = tab;
+    // Toggle regular task content
+    taskFilters.style.display = isBin ? "none" : "";
+    taskListSection.style.display = isBin ? "none" : "";
 
+    // Toggle Bin content
+    binSection.style.display = isBin ? "block" : "none";
 
-        // Apply all filters
+    // Hide regular empty state while viewing Bin
+    emptyState.style.display = isBin ? "none" : "";
+
+    // Apply filters only on regular task pages
+    if (!isBin) {
         applyTaskFilters();
-
     }
+}
 
 
     // SIDEBAR BUTTON EVENTS
@@ -390,6 +459,10 @@ document.addEventListener("DOMContentLoaded", function () {
         switchTab("Completed", completedTasksBtn);
     });
 
+    binNav.addEventListener("click", function () {
+    switchTab("Bin", binNav);
+    });
+
 
     // ===================================
     // 6. SEARCH AND DROPDOWN FILTERS
@@ -407,108 +480,106 @@ document.addEventListener("DOMContentLoaded", function () {
     dateFilter.addEventListener("change", applyTaskFilters);
 
 
-    // ===================================
-    // 7. SORT TASKS
-    // ===================================
+// ===================================
+// 7. SORT TASKS
+// ===================================
 
-    const sortTasksBtn = document.getElementById("sort-tasks-btn");
-    const sortDropdown = document.getElementById("sort-dropdown");
+const sortTasksBtn = document.getElementById("sort-tasks-btn");
+const sortDropdown = document.getElementById("sort-dropdown");
 
-    const sortOptions = document.querySelectorAll("[data-sort]");
+const sortOptions = document.querySelectorAll("[data-sort]");
 
+// Show or hide sort options
+sortTasksBtn.addEventListener("click", function () {
+    sortDropdown.classList.toggle("show");
+});
 
-    // Show or hide sort options
-    sortTasksBtn.addEventListener("click", function () {
-        sortDropdown.classList.toggle("show");
-    });
+// Sort selected option
+sortOptions.forEach(function (option) {
 
+    option.addEventListener("click", function () {
 
-    // Sort selected option
-    sortOptions.forEach(function (option) {
+        const sortType = option.dataset.sort;
 
-        option.addEventListener("click", function () {
+        // Detect which task list is currently active
+        const targetTaskList = activeTab === "Bin"
+            ? binTaskList
+            : taskList;
 
-            const sortType = option.dataset.sort;
+        const tasks = Array.from(
+            targetTaskList.querySelectorAll(".task-item")
+        );
 
-            const tasks = Array.from(
-                taskList.querySelectorAll(".task-item")
-            );
+        // ALPHABETICAL SORT
+        if (sortType === "alphabetical") {
 
+            tasks.sort(function (a, b) {
 
-            // ALPHABETICAL SORT
-            if (sortType === "alphabetical") {
-
-                tasks.sort(function (a, b) {
-
-                    return a.querySelector("h3").textContent
-                        .localeCompare(
-                            b.querySelector("h3").textContent
-                        );
-
-                });
-
-            }
-
-
-            // DUE DATE SORT
-            else if (sortType === "date") {
-
-                tasks.sort(function (a, b) {
-
-                    return a.dataset.date.localeCompare(
-                        b.dataset.date
+                return a.querySelector("h3").textContent
+                    .localeCompare(
+                        b.querySelector("h3").textContent
                     );
 
-                });
-
-            }
-
-
-            // PRIORITY SORT
-            else if (sortType === "priority") {
-
-                const priorityOrder = {
-                    "high": 1,
-                    "medium": 2,
-                    "low": 3
-                };
-
-                tasks.sort(function (a, b) {
-
-                    return priorityOrder[
-                        (a.dataset.priority || "").toLowerCase()
-                    ] - priorityOrder[
-                        (b.dataset.priority || "").toLowerCase()
-                    ];
-
-                });
-
-            }
-
-
-            // Rearrange task elements
-            tasks.forEach(function (task) {
-                taskList.appendChild(task);
             });
 
+        }
 
-            // Close dropdown
-            sortDropdown.classList.remove("show");
+        // DUE DATE SORT
+        else if (sortType === "date") {
 
+            tasks.sort(function (a, b) {
 
-            // Update sort button text
-            sortTasksBtn.innerHTML =
-                '<i class="fas fa-sort"></i> ' +
-                option.textContent.trim() +
-                ' <i class="fas fa-chevron-down"></i>';
+                return a.dataset.date.localeCompare(
+                    b.dataset.date
+                );
 
+            });
 
-            // Reapply active filters
-            applyTaskFilters();
+        }
 
+        // PRIORITY SORT
+        else if (sortType === "priority") {
+
+            const priorityOrder = {
+                "high": 1,
+                "medium": 2,
+                "low": 3
+            };
+
+            tasks.sort(function (a, b) {
+
+                return priorityOrder[
+                    (a.dataset.priority || "").toLowerCase()
+                ] - priorityOrder[
+                    (b.dataset.priority || "").toLowerCase()
+                ];
+
+            });
+
+        }
+
+        // Rearrange task elements in the active list
+        tasks.forEach(function (task) {
+            targetTaskList.appendChild(task);
         });
 
+        // Close dropdown
+        sortDropdown.classList.remove("show");
+
+        // Update sort button text
+        sortTasksBtn.innerHTML =
+            '<i class="fas fa-sort"></i> ' +
+            option.textContent.trim() +
+            ' <i class="fas fa-chevron-down"></i>';
+
+        // Reapply filters only for regular task lists
+        if (activeTab !== "Bin") {
+            applyTaskFilters();
+        }
+
     });
+
+});
 
 
     // ===================================
@@ -547,6 +618,8 @@ document.addEventListener("DOMContentLoaded", function () {
         // Create task list item
         const newTask = document.createElement("li");
 
+        newTask.draggable = true;
+
         newTask.className = "task-item";
 
         newTask.dataset.date = date;
@@ -563,6 +636,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         taskCard.className = "task-card";
 
+        // Create delete button
+    const deleteBtn = document.createElement("button");
+
+    deleteBtn.className = "delete-task-btn";
+    deleteBtn.type = "button";
+    deleteBtn.title = "Delete task";
+
+    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
 
         // Create title row
         const titleRow = document.createElement("div");
@@ -584,7 +665,7 @@ document.addEventListener("DOMContentLoaded", function () {
         taskTitle.textContent = title;
 
 
-        titleRow.append(checkbox, taskTitle);
+        titleRow.append(checkbox, taskTitle, deleteBtn);
 
 
         // Create description
@@ -629,7 +710,8 @@ document.addEventListener("DOMContentLoaded", function () {
         taskCard.append(
             titleRow,
             taskDescription,
-            taskMeta
+            taskMeta,
+            deleteBtn
         );
 
         newTask.appendChild(taskCard);
@@ -686,7 +768,265 @@ document.addEventListener("DOMContentLoaded", function () {
 
     });
 
-    
+// ===================================
+// 10. DELETE TASK (MOVE TO BIN)
+// ===================================
+
+taskList.addEventListener("click", function (event) {
+    const deleteBtn = event.target.closest(".delete-task-btn");
+    if (!deleteBtn) return;
+
+    const task = deleteBtn.closest(".task-item");
+    if (!task) return;
+
+    if (confirm("Move this task to the Bin?")) {
+
+        // Create Bin action buttons
+        const binActions = document.createElement("div");
+        binActions.className = "bin-actions";
+
+        binActions.innerHTML = `
+            <button type="button" class="restore-task-btn">
+                <i class="fas fa-undo"></i> Restore
+            </button>
+
+            <button type="button" class="permanent-delete-btn">
+                <i class="fas fa-trash"></i> Permanently Delete
+            </button>
+        `;
+
+        const taskCard = task.querySelector(".task-card");
+
+    if (taskCard) {
+    taskCard.appendChild(binActions);
+    }
+
+        // Move task to Bin
+        binTaskList.appendChild(task);
+
+        applyTaskFilters();
+        binEmptyState.style.display = "none";
+    }
+});
+
+    // ===================================
+// 11. BIN ACTIONS
+// ===================================
+
+binTaskList.addEventListener("click", function (event) {
+
+    const task = event.target.closest(".task-item");
+    if (!task) return;
+
+    // RESTORE TASK
+    const restoreBtn = event.target.closest(".restore-task-btn");
+
+    if (restoreBtn) {
+        task.querySelector(".bin-actions").remove();
+
+        taskList.appendChild(task);
+
+        binEmptyState.style.display =
+            binTaskList.children.length === 0 ? "block" : "none";
+
+        applyTaskFilters();
+        return;
+    }
+
+    // PERMANENTLY DELETE TASK
+    const permanentDeleteBtn = event.target.closest(".permanent-delete-btn");
+
+    if (permanentDeleteBtn) {
+        if (confirm("Permanently delete this task? This cannot be undone.")) {
+            task.remove();
+
+            binEmptyState.style.display =
+                binTaskList.children.length === 0 ? "block" : "none";
+        }
+    }
+});
+
+
+    // ===================================
+// 12. EMPTY BIN
+// ===================================
+
+emptyBinBtn.addEventListener("click", function () {
+
+    if (binTaskList.children.length === 0) {
+        alert("Your Bin is already empty!");
+        return;
+    }
+
+    if (confirm("Are you sure you want to permanently delete all tasks in the Bin? This cannot be undone.")) {
+
+        // Permanently remove all deleted tasks
+        binTaskList.innerHTML = "";
+
+        // Show empty Bin message
+        binEmptyState.style.display = "block";
+    }
+});
+
+    // ===================================
+// 11. EDIT TASK
+// ===================================
+
+// OPEN EDIT MODAL
+taskList.addEventListener("click", function (event) {
+
+    // Ignore checkbox and delete button clicks
+    if (
+        event.target.closest(".task-checkbox") ||
+        event.target.closest(".delete-task-btn")
+    ) {
+        return;
+    }
+
+    const taskCard = event.target.closest(".task-card");
+
+    if (!taskCard) return;
+
+    editingTask = taskCard.closest(".task-item");
+
+    if (!editingTask) return;
+
+    // Get current task details
+    editTaskTitle.value =
+        taskCard.querySelector(".task-title-row h3").textContent;
+
+    editTaskDescription.value =
+        taskCard.querySelector(".task-description").textContent.trim();
+
+    editTaskDate.value = editingTask.dataset.date;
+
+    editTaskPriority.value =
+        editingTask.dataset.priority.toLowerCase();
+
+    // Show modal
+    editTaskModal.style.display = "flex";
+});
+
+
+// CLOSE EDIT MODAL
+function closeEditTaskModal() {
+    editTaskModal.style.display = "none";
+    editingTask = null;
+}
+
+closeEditModal.addEventListener("click", closeEditTaskModal);
+cancelEdit.addEventListener("click", closeEditTaskModal);
+
+// CLOSE WHEN CLICKING OUTSIDE
+editTaskModal.addEventListener("click", function (event) {
+    if (event.target === editTaskModal) {
+        closeEditTaskModal();
+    }
+});
+
+// SAVE EDITED TASK
+editTaskForm.addEventListener("submit", function (event) {
+
+    event.preventDefault();
+
+    if (!editingTask) return;
+
+    const title = editTaskTitle.value.trim();
+    const description = editTaskDescription.value.trim();
+    const date = editTaskDate.value;
+    const priority = editTaskPriority.value;
+
+    if (!title || !date || !priority) {
+        alert("Please complete the required task fields.");
+        return;
+    }
+
+    const taskCard = editingTask.querySelector(".task-card");
+
+    // Update title
+    taskCard.querySelector(".task-title-row h3").textContent = title;
+
+    // Update description
+    taskCard.querySelector(".task-description").textContent = description;
+
+    // Update date
+    editingTask.dataset.date = date;
+
+    taskCard.querySelector(".task-date").textContent =
+        new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+
+    // Update priority
+    editingTask.dataset.priority = priority;
+
+    const priorityBadge =
+        taskCard.querySelector(".priority-badge");
+
+    priorityBadge.className =
+        "priority-badge " + priority;
+
+    priorityBadge.textContent = priority.toUpperCase();
+
+    // Close modal
+    closeEditTaskModal();
+
+    // Refresh filters and statistics
+    applyTaskFilters();
+});
+
+    // ===================================
+// DRAG AND DROP TASKS
+// ===================================
+
+let draggedTask = null;
+
+// Make existing tasks draggable
+taskList.querySelectorAll(".task-item").forEach(task => {
+    task.draggable = true;
+});
+
+// Start dragging
+taskList.addEventListener("dragstart", function (event) {
+    const task = event.target.closest(".task-item");
+
+    if (!task) return;
+
+    draggedTask = task;
+    task.classList.add("dragging");
+
+    event.dataTransfer.effectAllowed = "move";
+});
+
+// While dragging over another task
+taskList.addEventListener("dragover", function (event) {
+    event.preventDefault();
+
+    const targetTask = event.target.closest(".task-item");
+
+    if (!targetTask || targetTask === draggedTask) return;
+
+    const rect = targetTask.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+
+    if (event.clientY < midpoint) {
+        taskList.insertBefore(draggedTask, targetTask);
+    } else {
+        taskList.insertBefore(draggedTask, targetTask.nextSibling);
+    }
+});
+
+// Finish dragging
+taskList.addEventListener("dragend", function () {
+    if (draggedTask) {
+        draggedTask.classList.remove("dragging");
+    }
+
+    draggedTask = null;
+});
+
 
     // ===================================
     // UPDATE TASK STATISTICS

@@ -62,6 +62,10 @@
                     <i class="fas fa-check-circle"></i> Completed
                 </button>
 
+                <button id="bin-nav" type="button">
+                    <i class="fas fa-trash"></i> Bin
+                </button>
+
             </nav>
 
             <!-- Statistics Section -->
@@ -134,71 +138,16 @@
             Priority (High to Low)
         </button>
 
-    </div>
-
-</div>
+        </div>
 
                 </div>
-            </section>
 
-            <!-- Add Task Section (CREATE) -->
-            <section class="add-task-section" id="add-task-section">
+                <!-- Empty Bin Button -->
+            <button type="button" id="empty-bin-btn" class="empty-bin-action">
+             <i class="fas fa-trash"></i> Empty Bin
+            </button>
 
-                <h3>
-                    <i class="fas fa-plus-circle"></i> Add New Task
-                </h3>
-
-                <form id="add-task-form" method="POST" action="">
-
-                    <div class="form-group">
-                        <label for="task-title">Task Title</label>
-                        <input
-                            type="text"
-                            id="task-title"
-                            name="task_title"
-                            placeholder="Enter task title..."
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="task-description">Description</label>
-                        <textarea
-                            id="task-description"
-                            name="task_description"
-                            placeholder="Enter task description..."
-                        ></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="task-date">Due Date</label>
-                        <input
-                            type="date"
-                            id="task-date"
-                            name="task_date"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="task-priority">Priority</label>
-                        <select id="task-priority" name="task_priority">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-
-                    <div class="form-buttons">
-                        <button type="submit" name="add_task">
-                            <i class="fas fa-plus"></i> Save Task
-                        </button>
-
-                        <button type="button" id="cancel-task-btn">
-                            Cancel
-                        </button>
-                    </div>
-
-                </form>
+                </div>
             </section>
 
             <!-- Task Filters -->
@@ -243,10 +192,137 @@
               </div>
 
             </section>
-        </main>
+
+                                <!-- BIN SECTION -->
+            <section class="bin-section" id="bin-section" style="display: none;">
+
+                <ul class="task-list" id="bin-task-list">
+                    <!-- Deleted tasks will appear here -->
+                </ul>
+
+                <div class="empty-state" id="bin-empty-state">
+                    <i class="fas fa-trash-alt"></i>
+                    <h3>Your bin is empty!</h3>
+                    <p>Deleted tasks will appear here.</p>
+                </div>
+
+            </section>
 
     </div>
 
+        </main>
+
+
+        <!-- Add Task Modal -->
+    <section class="add-task-section" id="add-task-section">
+
+    <div class="modal-overlay" id="modal-overlay"></div>
+
+    <div class="add-task-modal">
+
+        <div class="modal-header">
+            <div>
+                <h3>
+                    <i class="fas fa-plus-circle"></i> Create New Task
+                </h3>
+            </div>
+
+            <button type="button" id="close-task-btn" class="close-task-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="add-task-form" method="POST" action="">
+
+            <div class="form-group">
+                <label for="task-title">Task Title</label>
+                <input
+                    type="text"
+                    id="task-title"
+                    name="task_title"
+                    placeholder="What needs to get done?"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="task-description">Description</label>
+                <textarea
+                    id="task-description"
+                    name="task_description"
+                    placeholder="Add some details..."
+                ></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="task-date">Due Date</label>
+                <input
+                    type="date"
+                    id="task-date"
+                    name="task_date"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="task-priority">Priority</label>
+                <select id="task-priority" name="task_priority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+
+            <div class="form-buttons">
+                <button type="button" id="cancel-task-btn">
+                    Cancel
+                </button>
+
+                <button type="submit" name="add_task">
+                    <i class="fas fa-plus"></i> Create Task
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+    </section>
+
+
+    <!-- EDIT TASK MODAL -->
+    <div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Task</h2>
+            <button type="button" id="closeEditModal">&times;</button>
+        </div>
+
+        <form id="editTaskForm">
+            <label for="editTaskTitle">Task Title</label>
+            <input type="text" id="editTaskTitle" required>
+
+            <label for="editTaskDescription">Description</label>
+            <textarea id="editTaskDescription"></textarea>
+
+            <label for="editTaskDate">Due Date</label>
+            <input type="date" id="editTaskDate">
+
+            <label for="editTaskPriority">Priority</label>
+            <select id="editTaskPriority">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+            <option value="high">High</option>
+            </select>
+
+            <div class="modal-actions">
+                <button type="button" id="cancelEdit">Cancel</button>
+                <button type="submit" id="saveEdit">Save Changes</button>
+            </div>
+        </form>
+    </div>
+    </div>
+
+    
     <!-- External JavaScript -->
     <script src="script.js" defer></script>
 
