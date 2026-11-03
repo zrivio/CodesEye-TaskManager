@@ -70,6 +70,7 @@ button {
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(105,73,189,0.075);
+    
 }
 
 .sidebar-menu {
@@ -213,18 +214,31 @@ button {
    8. ADD TASK SECTION
 ========================= */
 
+/* NEW TASK MODAL CONTAINER */
+
 .add-task-section {
-    background: #ffffff;
-    padding: 25px;
-    border-radius: 12px;
-    border: 1px solid #e9e3f0;
-    margin-bottom: 25px;
-    box-shadow: 0 3px 10px rgba(50, 35, 70, 0.04);
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+
+    z-index: 99999;
+
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .add-task-section.show {
-    display: block;
+    display: flex;
 }
+
 
 .add-task-section h3 {
     font-size: 19px;
@@ -254,12 +268,13 @@ button {
 .form-group textarea,
 .form-group select {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd5e8;
-    border-radius: 7px;
+    padding: 11px;
+    border: 1px solid #ded8e8;
+    border-radius: 8px;
     background: #ffffff;
     color: #302b3d;
     outline: none;
+    box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -270,34 +285,78 @@ button {
 }
 
 .form-group textarea {
-    min-height: 85px;
+    min-height: 90px;
     resize: vertical;
 }
 
-/* Make description take the full row */
+/* BACKGROUND OVERLAY */
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+
+    background: rgba(30, 20, 45, 0.45);
+
+    z-index: 0;
+}
+
+/* MODAL BOX */
+
+.add-task-modal {
+    position: relative;
+
+    width: 100%;
+    max-width: 450px;
+
+    max-height: 90vh;
+    overflow-y: auto;
+
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+body #add-task-section.show {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+
+    justify-content: center !important;
+    align-items: center !important;
+}
+/* MAKE DESCRIPTION TAKE THE FULL ROW */
 
 .form-group:has(textarea) {
     grid-column: 1 / -1;
 }
 
-/* Form Buttons */
+/* FORM BUTTONS */
 
 .form-buttons {
     grid-column: 1 / -1;
     display: flex;
+    justify-content: flex-end;
     gap: 10px;
+    margin-top: 15px;
 }
 
 .form-buttons button {
-    padding: 11px 18px;
-    border-radius: 7px;
-    background: #7955ad;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #8b65c7;
     color: #ffffff;
+    cursor: pointer;
     transition: 0.2s;
 }
 
 .form-buttons button:hover {
-    background: #63418f;
+    background: #7955ad;
 }
 
 .form-buttons button[type="reset"] {
@@ -397,22 +456,6 @@ button {
     border-radius: 6px;
 }
 
-/* Task action buttons */
-
-.edit-btn {
-    background: #eee6f8;
-    color: #7955ad;
-}
-
-.delete-btn {
-    background: #fdeaea;
-    color: #d95353;
-}
-
-.complete-btn {
-    background: #e5f5eb;
-    color: #318653;
-}
 
 /* Completed task */
 
@@ -420,6 +463,42 @@ button {
     text-decoration: line-through;
     color: #999999;
 }
+
+/* Action buttons */
+
+/* =========================
+   DELETE TASK BUTTON
+========================= */
+
+.task-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.task-title-row h3 {
+    flex: 1;
+    min-width: 0;
+}
+
+.delete-task-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: #d66b7d;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 15px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.delete-task-btn:hover {
+    background: #fce4ec;
+    color: #d62850;
+    transform: scale(1.1);
+}
+
 
 /* Priority labels */
 
@@ -638,20 +717,28 @@ button {
 }
 
 .task-card {
-    background: #fff;
+    background: transparent;
     padding: 6px 10px 6px 34px;
+    padding-left: 50px;
     border-radius: 12px;
-    border: 1px solid #eee8f5;
-    box-shadow: 0 3px 10px rgba(48, 43, 61, 0.05);
+    border: transparent;
+    box-shadow: transparent;
     flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 230px;
+    box-sizing: border-box;
+    cursor: pointer;
 }
 
-.task-card {
+/*.task-card {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 0;
-}
+}*/
 
 
 .task-item {
@@ -667,9 +754,6 @@ button {
     margin: 0;
 }
 
-.task-card {
-    padding-left: 50px;
-}
 
 /* Dark mode */
 body.dark-mode .task-card {
@@ -680,6 +764,7 @@ body.dark-mode .task-card {
 
 /* TITLE AND CHECKBOX */
 .task-title-row {
+    padding-right: 30px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -698,11 +783,45 @@ body.dark-mode .task-card {
     color: #302b3d;
 }
 
+.delete-task-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    margin-left: auto;
+    margin-top: 8px;
+
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+
+    color: #d66b7d;
+    font-size: 15px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.delete-task-btn:hover {
+    background: #fce4ec;
+    color: #d62850;
+}
+
+/* CLICKABLE TASK CONTROLS */
+.task-checkbox,
+.delete-task-btn {
+    cursor: pointer;
+}
+
 /* DESCRIPTION */
 .task-description {
     font-size: 14px;
     color: #777184;
     margin: 12px 0;
+    min-height: 45px;
 }
 
 /* DATE AND PRIORITY */
@@ -711,7 +830,8 @@ body.dark-mode .task-card {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: 15px;
+    margin-top: auto;
+
 }
 
 .task-date {
@@ -751,6 +871,93 @@ body.dark-mode .task-card {
 .task-item.completed .task-card {
     opacity: 0.7;
 }
+
+
+/* EDIT TASK MODAL */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background: rgba(39, 20, 45, 0.45);
+
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: #ffffff;
+    width: 100%;
+    max-width: 450px;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header button {
+    background: none;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: #777;
+}
+
+#editTaskForm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#editTaskForm input,
+#editTaskForm textarea,
+#editTaskForm select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #ded8e8;
+    border-radius: 8px;
+    outline: none;
+}
+
+#editTaskForm textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.modal-actions button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#cancelEdit {
+    background: #eeeaf3;
+    color: #51465f;
+}
+
+#saveEdit {
+    background: #8b65c7;
+    color: white;
+}
+
+
+
 
 /* =========================
    
@@ -800,7 +1007,16 @@ body.dark-mode .app-header {
     color: #f5effb;
 }
 
-body.dark-mode .sidebar,
+body.dark-mode .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    padding: 25px 18px;
+    background: #302a43;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(105,73,189,0.075);
+}
+
 body.dark-mode .task-content {
     color: #f5effb;
     background: rgba(105,73,189,0.15);
@@ -964,7 +1180,104 @@ body.dark-mode .empty-state p {
     color: #c4b6d8;
 }
 
+/* =========================
+   DARK MODE - TASK MODALS
+========================= */
 
+/* MODAL BACKGROUNDS */
+body.dark-mode .add-task-modal,
+body.dark-mode .modal-content {
+    background: #252131;
+    color: #f0eafa;
+}
+
+/* MODAL HEADERS */
+body.dark-mode .modal-header {
+    border-bottom-color: #40394d;
+}
+
+body.dark-mode .add-task-modal h3,
+body.dark-mode .modal-content h3 {
+    color: #c9a9f5;
+}
+
+body.dark-mode .add-task-modal p,
+body.dark-mode .modal-content p {
+    color: #c8bfd5;
+}
+
+/* FORM LABELS */
+body.dark-mode .add-task-modal label,
+body.dark-mode #editTaskForm label {
+    color: #e5dced;
+}
+
+/* INPUTS, TEXTAREAS, AND SELECTS */
+body.dark-mode .add-task-modal input,
+body.dark-mode .add-task-modal textarea,
+body.dark-mode .add-task-modal select,
+body.dark-mode #editTaskForm input,
+body.dark-mode #editTaskForm textarea,
+body.dark-mode #editTaskForm select {
+    background: #302b3b;
+    color: #f3effa;
+    border: 1px solid #514761;
+    border-radius: 7px;
+}
+
+/* PLACEHOLDER TEXT */
+body.dark-mode .add-task-modal input::placeholder,
+body.dark-mode .add-task-modal textarea::placeholder,
+body.dark-mode #editTaskForm input::placeholder,
+body.dark-mode #editTaskForm textarea::placeholder {
+    color: #a99eb8;
+}
+
+/* INPUT FOCUS */
+body.dark-mode .add-task-modal input:focus,
+body.dark-mode .add-task-modal textarea:focus,
+body.dark-mode .add-task-modal select:focus,
+body.dark-mode #editTaskForm input:focus,
+body.dark-mode #editTaskForm textarea:focus,
+body.dark-mode #editTaskForm select:focus {
+    border-color: #b995ed;
+    outline: none;
+}
+
+/* CLOSE BUTTONS */
+body.dark-mode .close-task-btn,
+body.dark-mode #closeEditModal {
+    color: #f3effa;
+}
+
+/* MODAL ACTION BUTTONS */
+body.dark-mode .add-task-modal .form-buttons button,
+body.dark-mode .modal-actions button {
+    background: #9b75d0;
+    color: #ffffff;
+    border: none;
+}
+
+/* BUTTON HOVER */
+body.dark-mode .add-task-modal .form-buttons button:hover,
+body.dark-mode .modal-actions button:hover {
+    background: #805bb5;
+}
+
+/* CANCEL BUTTONS */
+body.dark-mode #cancelEdit {
+    background: #40394d;
+    color: #e5dced;
+}
+
+body.dark-mode #cancelEdit:hover {
+    background: #514761;
+}
+
+/* MODAL OVERLAY */
+body.dark-mode .modal-overlay {
+    background: rgba(12, 9, 20, 0.247);
+}
 /* =========================
    CENTERED DASHBOARD LAYOUT
 ========================= */
@@ -1006,3 +1319,106 @@ body.dark-mode .empty-state p {
     }
 }
 
+/* DRAGGABLE TASK CARDS */
+
+.task-item {
+    cursor: grab;
+}
+
+.task-item:active {
+    cursor: grabbing;
+}
+
+.task-item.dragging {
+    opacity: 0.4;
+}
+
+
+/* BIN ACTION BUTTONS */
+
+.bin-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+
+    width: 100%;
+    margin-top: auto;
+    padding-top: 12px;
+
+    box-sizing: border-box;
+}
+
+
+.restore-task-btn,
+.permanent-delete-btn {
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.restore-task-btn {
+    background: #e9ddff;
+    color: #7545b5;
+}
+
+.permanent-delete-btn {
+    background: #ffe1e1;
+    color: #c03939;
+}
+
+.restore-task-btn:hover,
+.permanent-delete-btn:hover {
+    opacity: 0.8;
+}
+
+/* HIDE NORMAL DELETE BUTTON INSIDE BIN */
+
+#bin-task-list .delete-task-btn {
+    display: none;
+}
+
+/* EMPTY BIN BUTTON */
+
+#empty-bin-btn {
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 10px 16px;
+
+    background: #7e57b5;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+/* Show only when Bin tab is active */
+
+body.bin-view #empty-bin-btn {
+    display: inline-flex;
+}
+
+#empty-bin-btn:hover {
+    background: #69449f;
+}
+
+/* Show Empty Bin only in Bin view */
+
+body.bin-view .empty-bin-action {
+    display: inline-flex;
+}
