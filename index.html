@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CodesEye Task Manager</title>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1>
+                <i class="fa-solid fa-star-and-crescent"></i>
+                Lunova
+            </h1>
+
+            <!-- Dark Mode Toggle -->
+            <button id="theme-toggle" type="button" aria-label="Switch to dark mode">
+            <i class="fas fa-moon" id="theme-icon"></i>
+        </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+
+            <!-- Sidebar Menu -->
+            <nav class="sidebar-menu">
+
+                <button class="active" id="all-tasks" type="button">
+                    <i class="fas fa-list"></i> All Tasks
+                </button>
+
+                <button id="today-tasks" type="button">
+                    <i class="fas fa-calendar-day"></i> Today
+                </button>
+
+                <button id="important-tasks" type="button">
+                    <i class="fas fa-star"></i> Important
+                </button>
+
+                <button id="completed-tasks" type="button">
+                    <i class="fas fa-check-circle"></i> Completed
+                </button>
+
+            </nav>
+
+            <!-- Statistics Section -->
+            <section class="stats-section">
+                <h4>Statistics</h4>
+
+                <div class="stats-item">
+                    <span>Total Tasks</span>
+                    <span id="total-tasks-count">0</span>
+                </div>
+
+                <div class="stats-item">
+                    <span>Completed</span>
+                    <span id="completed-tasks-count">0</span>
+                </div>
+
+                <div class="stats-item">
+                    <span>Pending</span>
+                    <span id="pending-tasks-count">0</span>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- Main Task Content -->
+        <main class="task-content">
+
+            <!-- Task Header -->
+            <section class="task-header">
+
+                <h2 id="current-view">All Tasks</h2>
+
+                <div class="task-actions">
+
+                    <!-- Search -->
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="task-search"
+                            placeholder="Search tasks..."
+                            aria-label="Search tasks"
+                        >
+                        <i class="fas fa-search"></i>
+                    </div>
+
+                    <!-- Add Task Button -->
+                    <button id="add-task-btn" type="button">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+
+                    <!-- Sort Dropdown -->
+                    <div class="sort-container">
+
+                     <button id="sort-tasks-btn" type="button">
+                       <i class="fas fa-sort"></i> Sort
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+
+                      <div class="sort-dropdown" id="sort-dropdown">
+
+                    <button type="button" data-sort="alphabetical">
+                    Alphabetical (A-Z)
+                    </button>
+
+                    <button type="button" data-sort="date">
+                    Due Date (Earliest First)
+                    </button>
+
+        <button type="button" data-sort="priority">
+            Priority (High to Low)
+        </button>
+
+    </div>
+
+</div>
+
+                </div>
+            </section>
+
+            <!-- Add Task Section (CREATE) -->
+            <section class="add-task-section" id="add-task-section">
+
+                <h3>
+                    <i class="fas fa-plus-circle"></i> Add New Task
+                </h3>
+
+                <form id="add-task-form" method="POST" action="">
+
+                    <div class="form-group">
+                        <label for="task-title">Task Title</label>
+                        <input
+                            type="text"
+                            id="task-title"
+                            name="task_title"
+                            placeholder="Enter task title..."
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-description">Description</label>
+                        <textarea
+                            id="task-description"
+                            name="task_description"
+                            placeholder="Enter task description..."
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-date">Due Date</label>
+                        <input
+                            type="date"
+                            id="task-date"
+                            name="task_date"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority" name="task_priority">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" name="add_task">
+                            <i class="fas fa-plus"></i> Save Task
+                        </button>
+
+                        <button type="button" id="cancel-task-btn">
+                            Cancel
+                        </button>
+                    </div>
+
+                </form>
+            </section>
+
+            <!-- Task Filters -->
+            <section class="task-filters">
+
+                <div class="filter-item">
+                    <label for="priority-filter">Priority:</label>
+
+                    <select id="priority-filter">
+                        <option value="all">All</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="date-filter">Due Date:</label>
+
+                    <select id="date-filter">
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="overdue">Overdue</option>
+                    </select>
+                </div>
+
+            </section>
+
+            <section class="task-list-section">
+
+                <ul class="task-list" id="task-list">
+                  <!-- PHP-generated task entries will appear here -->
+                 </ul>
+
+              <!-- Empty Task Message -->
+             <div class="empty-state" id="empty-state">
+               <i class="fas fa-clipboard-list"></i>
+                 <h3>No tasks yet!</h3>
+               <p>Add a task to get started.</p>
+              </div>
+
+            </section>
+        </main>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="script.js" defer></script>
+
+</body>
+</html>
