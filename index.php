@@ -409,7 +409,7 @@ $binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
             </button>
         </div>
 
-        <form id="add-task-form" method="POST" action="">
+        <form id="add-task-form" method="POST" action="" novalidate>
 
             <div class="form-group">
                 <label for="task-title">Task Title</label>
@@ -418,6 +418,7 @@ $binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
                     id="task-title"
                     name="task_title"
                     placeholder="What needs to get done?"
+                    autocomplete="off"
                     required
                 >
             </div>
@@ -474,12 +475,12 @@ $binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
             <button type="button" id="closeEditModal">&times;</button>
         </div>
 
-        <form id="editTaskForm" method="POST" action="">
+        <form id="editTaskForm" method="POST" action="" novalidate>
             <input type="hidden" name="action" value="edit">
             <input type="hidden" name="id" id="editTaskId">
 
             <label for="editTaskTitle">Task Title</label>
-            <input type="text" id="editTaskTitle" name="task_title" required>
+            <input type="text" id="editTaskTitle" name="task_title" autocomplete="off" required>
 
             <label for="editTaskDescription">Description</label>
             <textarea id="editTaskDescription" name="task_description"></textarea>
@@ -508,6 +509,18 @@ $binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
         <input type="hidden" name="action" id="action-type">
         <input type="hidden" name="id" id="action-id">
     </form>
+    
+    <div class="app-dialog" id="app-dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-message">
+        <div class="app-dialog-overlay" id="dialog-overlay"></div>
+        <div class="app-dialog-box">
+            <div class="app-dialog-icon"><i id="dialog-icon" class="fas fa-circle-exclamation"></i></div>
+            <p class="app-dialog-message" id="dialog-message"></p>
+            <div class="app-dialog-actions">
+                <button type="button" id="dialog-cancel" class="app-dialog-cancel">Cancel</button>
+                <button type="button" id="dialog-ok">OK</button>
+            </div>
+        </div>
+    </div>
 
     <!-- External JavaScript -->
     <script src="script.js" defer></script>

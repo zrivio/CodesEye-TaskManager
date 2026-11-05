@@ -1355,3 +1355,113 @@ body.dark-mode .error-list {
     border-color: #6b2b2b;
     color: #ffb4ab;
 }
+
+/* ---------- Pop-up message ---------- */
+
+.app-dialog {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000000;
+
+    justify-content: center;
+    align-items: center;
+
+    padding: 20px;
+}
+
+.app-dialog.show {
+    display: flex;
+}
+
+.app-dialog-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 20, 45, 0.45);
+}
+
+.app-dialog-box {
+    position: relative;
+
+    width: 100%;
+    max-width: 360px;
+
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+.app-dialog-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 14px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+    background: #efe6fb;
+    color: #7955ad;
+    font-size: 20px;
+}
+
+.app-dialog-message {
+    color: #302b3d;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.app-dialog-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.app-dialog-actions button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    background: #8b65c7;
+    color: #ffffff;
+    transition: 0.2s;
+}
+
+.app-dialog-actions button:hover {
+    background: #7955ad;
+}
+
+.app-dialog-actions .app-dialog-cancel {
+    background: #eeeaf3;
+    color: #625a70;
+}
+
+.app-dialog-actions .app-dialog-cancel:hover {
+    background: #e1dbe9;
+}
+
+body.dark-mode .app-dialog-box {
+    background: #383149;
+    border: 1px solid #514762;
+}
+
+body.dark-mode .app-dialog-message {
+    color: #f5effb;
+}
+
+body.dark-mode .app-dialog-icon {
+    background: #514366;
+    color: #e0caff;
+}
+
+body.dark-mode .app-dialog-actions .app-dialog-cancel {
+    background: #514366;
+    color: #f5effb;
+}
+
+body.dark-mode .app-dialog-actions .app-dialog-cancel:hover {
+    background: #62527a;
+}
