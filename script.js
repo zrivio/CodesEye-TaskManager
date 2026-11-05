@@ -90,17 +90,121 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const taskSearch = document.getElementById("task-search");
     const priorityFilter = document.getElementById("priority-filter");
+    const priorityFilterItem = priorityFilter.closest(".filter-item");
     const dateFilter = document.getElementById("date-filter");
 
+    const sortTasksBtn = document.getElementById("sort-tasks-btn");
+    const sortDropdown = document.getElementById("sort-dropdown");
+    const sortOptions = document.querySelectorAll("[data-sort]");
+
+    const toastContainer = document.getElementById("toast-container");
+
     let activeTab = "All Tasks";
+
+    // Search, Sort, Priority and Due Date values are kept separately for every page
+    const defaultSortHTML =
+        '<i class="fas fa-sort"></i> Sort <i class="fas fa-chevron-down"></i>';
+
+    const pageState = {};
+
+    ["All Tasks", "Today", "Important", "Completed", "Bin"].forEach(function (page) {
+        pageState[page] = {
+            search: "",
+            priority: "all",
+            date: "all",
+            sortLabel: null,   // null = no sort chosen on this page
+            order: null        // card order on this page (null = original order)
+        };
+    });
+
+    // Remember the original (server) order of the cards
+    Array.from(taskList.children).forEach(function (task, index) {
+        task.dataset.index = index;
+    });
+
+    // Local date as YYYY-MM-DD (same day the person sees on their calendar)
+    function localDateString() {
+        const now = new Date();
+        return [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, "0"),
+            String(now.getDate()).padStart(2, "0")
+        ].join("-");
+    }
 
     // Sends toggle / trash / restore / delete / empty_bin to PHP
     // through the hidden #action-form in index.php
     function submitAction(action, id) {
         document.getElementById("action-type").value = action;
         document.getElementById("action-id").value = id || "";
+        document.getElementById("action-completed-on").value = localDateString();
         document.getElementById("action-form").submit();
     }
+
+    // ---------- Pop-up open / close (with a short fade) ----------
+
+    const POPUP_ANIMATION_MS = 200;
+
+    function showPopup(popup) {
+        clearTimeout(popup.hideTimer);
+        popup.classList.remove("closing");
+        popup.classList.add("show");
+    }
+
+    function hidePopup(popup, afterHide) {
+
+        if (!popup.classList.contains("show") || popup.classList.contains("closing")) {
+            return;
+        }
+
+        popup.classList.add("closing");
+
+        popup.hideTimer = setTimeout(function () {
+            popup.classList.remove("show", "closing");
+            if (afterHide) afterHide();
+        }, POPUP_ANIMATION_MS);
+    }
+
+
+    // ---------- Toast notifications ----------
+
+    const TOAST_VISIBLE_MS = 3500;
+    const TOAST_FADE_MS = 300;
+
+    function showToast(message) {
+
+        if (!message) return;
+
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.setAttribute("role", "status");
+
+        const icon = document.createElement("i");
+        icon.className = "fas fa-circle-check";
+
+        const text = document.createElement("span");
+        text.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(text);
+        toastContainer.appendChild(toast);
+
+        function removeToast() {
+            clearTimeout(timer);
+            toast.classList.add("hide");
+            setTimeout(function () {
+                toast.remove();
+            }, TOAST_FADE_MS);
+        }
+
+        const timer = setTimeout(removeToast, TOAST_VISIBLE_MS);
+
+        toast.addEventListener("click", removeToast);
+    }
+
+    // PHP leaves a one-time message here after a successful add / edit / delete / restore
+    showToast(toastContainer.dataset.message);
+
 
     // ---------- Pop-up message ----------
 
@@ -127,13 +231,13 @@ document.addEventListener("DOMContentLoaded", function () {
         dialogOnOk = options.onOk || null;
         dialogOnClose = options.onClose || null;
 
-        appDialog.classList.add("show");
+        showPopup(appDialog);
         dialogOk.focus();
     }
 
     function closeDialog(accepted) {
 
-        appDialog.classList.remove("show");
+        hidePopup(appDialog);
 
         const onOk = dialogOnOk;
         const onClose = dialogOnClose;
@@ -163,9 +267,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Checks the title / date / priority fields and returns the first
-    // problem found (message + the field to focus), or null if all good.
-    function checkTaskFields(titleField, dateField, priorityField) {
+    // Counts characters the way PHP's mb_strlen does (an emoji is 1, not 2)
+    function textLength(text) {
+        return Array.from(text).length;
+    }
+
+    // Checks the title / description / date / priority fields and returns the
+    // first problem found (message + the field to focus), or null if all good.
+    // The rules mirror validateTask() in index.php.
+    function checkTaskFields(titleField, dateField, priorityField, descriptionField) {
 
         const title = titleField.value.trim();
 
@@ -173,8 +283,21 @@ document.addEventListener("DOMContentLoaded", function () {
             return { message: "Please enter a task title.", field: titleField };
         }
 
-        if (title.length < 3) {
+        if (textLength(title) < 3) {
             return { message: "Task title must be at least 3 characters long.", field: titleField };
+        }
+
+        if (textLength(title) > 100) {
+            return { message: "Task title cannot exceed 100 characters.", field: titleField };
+        }
+
+        // Browsers send a line break as 2 characters (\r\n), so count it the same way
+        if (descriptionField) {
+            const description = descriptionField.value.trim().replace(/\r?\n/g, "\r\n");
+
+            if (textLength(description) > 255) {
+                return { message: "Description cannot exceed 255 characters.", field: descriptionField };
+            }
         }
 
         if (!dateField.value) {
@@ -192,11 +315,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // ---------- Add task modal ----------
 
 addTaskBtn.addEventListener("click", function () {
-    addTaskSection.classList.add("show");
+    showPopup(addTaskSection);
 });
 
 function closeAddTaskModal() {
-    addTaskSection.classList.remove("show");
+    hidePopup(addTaskSection);
 }
 
 closeTaskBtn.addEventListener("click", closeAddTaskModal);
@@ -211,10 +334,56 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
 
     // ---------- Filtering ----------
 
+    // Text the search box looks at: title, description, date and priority
+    function getSearchText(task) {
+        return [".task-title-row", ".task-description", ".task-meta"]
+            .map(function (selector) {
+                const part = task.querySelector(selector);
+                return part ? part.textContent : "";
+            })
+            .join(" ")
+            .toLowerCase();
+    }
+
+    // The Bin only has Search (its own value, separate from the other pages)
+    function applyBinFilters() {
+
+        const searchValue = taskSearch.value.toLowerCase().trim();
+
+        let visibleTasks = 0;
+
+        binTaskList.querySelectorAll(".task-item").forEach(function (task) {
+
+            const showTask = getSearchText(task).includes(searchValue);
+
+            task.style.display = showTask ? "" : "none";
+
+            if (showTask) {
+                visibleTasks++;
+            }
+        });
+
+        binEmptyState.style.display = visibleTasks === 0 ? "" : "none";
+    }
+
+    // Re-applies the filters of whichever page is open
+    function refreshCurrentPage() {
+        if (activeTab === "Bin") {
+            applyBinFilters();
+        } else {
+            applyTaskFilters();
+        }
+    }
+
     function applyTaskFilters() {
 
         const searchValue = taskSearch.value.toLowerCase().trim();
-        const selectedPriority = priorityFilter.value;
+
+        // The Important page has no Priority dropdown, so it never filters by priority
+        const selectedPriority = activeTab === "Important"
+            ? "all"
+            : priorityFilter.value;
+
         const selectedDate = dateFilter.value;
 
         const today = new Date();
@@ -263,7 +432,7 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
 
         tasks.forEach(function (task) {
 
-            const taskText = task.textContent.toLowerCase();
+            const taskText = getSearchText(task);
 
             const priority = (
                 task.dataset.priority || ""
@@ -274,6 +443,8 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
             const important = task.dataset.important || "false";
 
             const dateValue = task.dataset.date || "";
+
+            const completedOn = task.dataset.completedAt || "";
 
             const taskDate = dateValue
                 ? new Date(dateValue + "T00:00:00")
@@ -321,6 +492,15 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
                     taskDate <= endOfMonth;
             }
 
+            else if (selectedDate === "overdue" && activeTab === "Completed") {
+
+                // Completed page: overdue = finished after the due date
+                showTask = showTask &&
+                    dateValue !== "" &&
+                    completedOn !== "" &&
+                    completedOn > dateValue;
+            }
+
             else if (selectedDate === "overdue") {
 
                 showTask = showTask &&
@@ -330,9 +510,16 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
             }
 
 
-            // Sidebar tab (Today / Important / Completed)
+            // Sidebar tab (All Tasks / Today / Important / Completed)
 
-            if (activeTab === "Today") {
+            if (activeTab === "All Tasks") {
+
+                // Checked tasks live on the Completed page
+                showTask = showTask &&
+                    status !== "completed";
+            }
+
+            else if (activeTab === "Today") {
 
                 showTask = showTask &&
                     dateValue === todayDate;
@@ -371,7 +558,76 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
 
 // ---------- Sidebar tabs ----------
 
+// Stores the controls of the page being left, so each page keeps its own values
+function savePageState() {
+
+    const state = pageState[activeTab];
+
+    state.search = taskSearch.value;
+    state.priority = priorityFilter.value;
+    state.date = dateFilter.value;
+
+    if (activeTab !== "Bin") {
+        state.order = Array.from(taskList.children).map(function (task) {
+            return task.dataset.id;
+        });
+    }
+}
+
+// Puts the controls and the card order of the page being opened back
+function loadPageState(tab) {
+
+    const state = pageState[tab];
+
+    taskSearch.value = state.search;
+    priorityFilter.value = state.priority;
+    dateFilter.value = state.date;
+
+    sortTasksBtn.innerHTML = state.sortLabel || defaultSortHTML;
+
+    if (tab === "Bin") return;
+
+    const cards = Array.from(taskList.children);
+
+    if (state.order) {
+
+        const byId = new Map(cards.map(function (task) {
+            return [task.dataset.id, task];
+        }));
+
+        state.order.forEach(function (id) {
+            if (byId.has(id)) taskList.appendChild(byId.get(id));
+        });
+
+    } else {
+
+        cards
+            .sort(function (a, b) {
+                return Number(a.dataset.index) - Number(b.dataset.index);
+            })
+            .forEach(function (task) {
+                taskList.appendChild(task);
+            });
+    }
+}
+
+// Short fade/slide every time a page is opened
+function playPageTransition() {
+
+    document.querySelectorAll(".task-content > section").forEach(function (section) {
+        section.classList.remove("page-enter");
+        void section.offsetWidth;
+        section.classList.add("page-enter");
+    });
+}
+
+let pagesReady = false;
+
 function switchTab(tab, clickedButton) {
+
+    if (pagesReady) {
+        savePageState();
+    }
 
     sidebarButtons.forEach(function (button) {
         button.classList.remove("active");
@@ -396,10 +652,24 @@ function switchTab(tab, clickedButton) {
 
     emptyState.style.display = isBin ? "none" : "";
 
-    // Filters only apply to the regular list
-    if (!isBin) {
-        applyTaskFilters();
-    }
+    // Important only has the Due Date dropdown
+    priorityFilterItem.style.display = tab === "Important" ? "none" : "";
+
+    // The Bin has its own sort options
+    sortOptions.forEach(function (option) {
+        const forBin = option.dataset.view === "bin";
+        option.style.display = forBin === isBin ? "" : "none";
+    });
+
+    sortDropdown.classList.remove("show");
+
+    loadPageState(tab);
+
+    refreshCurrentPage();
+
+    pagesReady = true;
+
+    playPageTransition();
 }
 
 
@@ -426,7 +696,7 @@ function switchTab(tab, clickedButton) {
 
     // ---------- Search and filter events ----------
 
-    taskSearch.addEventListener("input", applyTaskFilters);
+    taskSearch.addEventListener("input", refreshCurrentPage);
 
 
     priorityFilter.addEventListener("change", applyTaskFilters);
@@ -436,11 +706,6 @@ function switchTab(tab, clickedButton) {
 
 
 // ---------- Sorting ----------
-
-const sortTasksBtn = document.getElementById("sort-tasks-btn");
-const sortDropdown = document.getElementById("sort-dropdown");
-
-const sortOptions = document.querySelectorAll("[data-sort]");
 
 sortTasksBtn.addEventListener("click", function () {
     sortDropdown.classList.toggle("show");
@@ -488,6 +753,18 @@ sortOptions.forEach(function (option) {
 
         }
 
+        // Bin: earliest deleted first
+        else if (sortType === "deleted") {
+
+            tasks.sort(function (a, b) {
+
+                return Number(a.dataset.deletedAt) -
+                    Number(b.dataset.deletedAt);
+
+            });
+
+        }
+
         // high to low
         else if (sortType === "priority") {
 
@@ -516,15 +793,15 @@ sortOptions.forEach(function (option) {
 
         sortDropdown.classList.remove("show");
 
-        sortTasksBtn.innerHTML =
+        // Only this page remembers the chosen sort
+        pageState[activeTab].sortLabel =
             '<i class="fas fa-sort"></i> ' +
             option.textContent.trim() +
             ' <i class="fas fa-chevron-down"></i>';
 
-        // The Bin has no filters
-        if (activeTab !== "Bin") {
-            applyTaskFilters();
-        }
+        sortTasksBtn.innerHTML = pageState[activeTab].sortLabel;
+
+        refreshCurrentPage();
 
     });
 
@@ -538,7 +815,8 @@ sortOptions.forEach(function (option) {
         const problem = checkTaskFields(
             addTaskForm.elements["task_title"],
             addTaskForm.elements["task_date"],
-            addTaskForm.elements["task_priority"]
+            addTaskForm.elements["task_priority"],
+            addTaskForm.elements["task_description"]
         );
 
         // Quick check here; PHP validates again on the server
@@ -671,27 +949,23 @@ taskList.addEventListener("click", function (event) {
     editTaskPriority.value =
         editingTask.dataset.priority.toLowerCase();
 
-    editTaskModal.style.display = "flex";
+    showPopup(editTaskModal);
 });
 
 
 function closeEditTaskModal() {
-    editTaskModal.style.display = "none";
+    hidePopup(editTaskModal);
     editingTask = null;
 }
 
 closeEditModal.addEventListener("click", closeEditTaskModal);
 cancelEdit.addEventListener("click", closeEditTaskModal);
 
-editTaskModal.addEventListener("click", function (event) {
-    if (event.target === editTaskModal) {
-        closeEditTaskModal();
-    }
-});
+document.getElementById("edit-modal-overlay").addEventListener("click", closeEditTaskModal);
 
 editTaskForm.addEventListener("submit", function (event) {
 
-    const problem = checkTaskFields(editTaskTitle, editTaskDate, editTaskPriority);
+    const problem = checkTaskFields(editTaskTitle, editTaskDate, editTaskPriority, editTaskDescription);
 
     // Quick check here; PHP validates again on the server
     if (problem) {
