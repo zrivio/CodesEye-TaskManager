@@ -102,6 +102,92 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("action-form").submit();
     }
 
+    // ---------- Pop-up message ----------
+
+    const appDialog = document.getElementById("app-dialog");
+    const dialogMessage = document.getElementById("dialog-message");
+    const dialogOk = document.getElementById("dialog-ok");
+    const dialogCancel = document.getElementById("dialog-cancel");
+    const dialogOverlay = document.getElementById("dialog-overlay");
+    const dialogIcon = document.getElementById("dialog-icon");
+
+    let dialogOnOk = null;
+    let dialogOnClose = null;
+
+    // options: confirm (show Cancel button), okText, onOk, onClose
+    function openDialog(message, options) {
+
+        options = options || {};
+
+        dialogMessage.textContent = message;
+        dialogOk.textContent = options.okText || "OK";
+        dialogIcon.className = "fas " + (options.icon || "fa-circle-exclamation");
+        dialogCancel.style.display = options.confirm ? "" : "none";
+
+        dialogOnOk = options.onOk || null;
+        dialogOnClose = options.onClose || null;
+
+        appDialog.classList.add("show");
+        dialogOk.focus();
+    }
+
+    function closeDialog(accepted) {
+
+        appDialog.classList.remove("show");
+
+        const onOk = dialogOnOk;
+        const onClose = dialogOnClose;
+
+        dialogOnOk = null;
+        dialogOnClose = null;
+
+        if (accepted && onOk) onOk();
+        if (onClose) onClose();
+    }
+
+    dialogOk.addEventListener("click", function () {
+        closeDialog(true);
+    });
+
+    dialogCancel.addEventListener("click", function () {
+        closeDialog(false);
+    });
+
+    dialogOverlay.addEventListener("click", function () {
+        closeDialog(false);
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && appDialog.classList.contains("show")) {
+            closeDialog(false);
+        }
+    });
+
+    // Checks the title / date / priority fields and returns the first
+    // problem found (message + the field to focus), or null if all good.
+    function checkTaskFields(titleField, dateField, priorityField) {
+
+        const title = titleField.value.trim();
+
+        if (!title) {
+            return { message: "Please enter a task title.", field: titleField };
+        }
+
+        if (title.length < 3) {
+            return { message: "Task title must be at least 3 characters long.", field: titleField };
+        }
+
+        if (!dateField.value) {
+            return { message: "Please choose a due date.", field: dateField };
+        }
+
+        if (!priorityField.value) {
+            return { message: "Please choose a priority.", field: priorityField };
+        }
+
+        return null;
+    }
+
 
     // ---------- Add task modal ----------
 
@@ -449,18 +535,22 @@ sortOptions.forEach(function (option) {
 
     addTaskForm.addEventListener("submit", function (event) {
 
-        const formData = new FormData(addTaskForm);
-
-        const title = formData.get("task_title").trim();
-        const date = formData.get("task_date");
-        const priority = formData.get("task_priority");
+        const problem = checkTaskFields(
+            addTaskForm.elements["task_title"],
+            addTaskForm.elements["task_date"],
+            addTaskForm.elements["task_priority"]
+        );
 
         // Quick check here; PHP validates again on the server
-        if (!title || !date || !priority) {
+        if (problem) {
 
             event.preventDefault();
 
-            alert("Please complete the required task fields.");
+            openDialog(problem.message, {
+                onClose: function () {
+                    problem.field.focus();
+                }
+            });
 
         }
 
@@ -493,9 +583,14 @@ taskList.addEventListener("click", function (event) {
     const task = deleteBtn.closest(".task-item");
     if (!task) return;
 
-    if (confirm("Move this task to the Bin?")) {
-        submitAction("trash", task.dataset.id);
-    }
+    openDialog("Move this task to the Bin?", {
+        confirm: true,
+        icon: "fa-trash-can",
+        okText: "Move to Bin",
+        onOk: function () {
+            submitAction("trash", task.dataset.id);
+        }
+    });
 });
 
     // ---------- Bin: restore or delete permanently ----------
@@ -511,9 +606,14 @@ binTaskList.addEventListener("click", function (event) {
     }
 
     if (event.target.closest(".permanent-delete-btn")) {
-        if (confirm("Permanently delete this task? This cannot be undone.")) {
-            submitAction("delete", task.dataset.id);
-        }
+        openDialog("Permanently delete this task? This cannot be undone.", {
+            confirm: true,
+            icon: "fa-triangle-exclamation",
+            okText: "Delete",
+            onOk: function () {
+                submitAction("delete", task.dataset.id);
+            }
+        });
     }
 });
 
@@ -523,13 +623,18 @@ binTaskList.addEventListener("click", function (event) {
 emptyBinBtn.addEventListener("click", function () {
 
     if (binTaskList.children.length === 0) {
-        alert("Your Bin is already empty!");
+        openDialog("Your Bin is already empty!");
         return;
     }
 
-    if (confirm("Are you sure you want to permanently delete all tasks in the Bin? This cannot be undone.")) {
-        submitAction("empty_bin");
-    }
+    openDialog("Permanently delete all tasks in the Bin? This cannot be undone.", {
+        confirm: true,
+        icon: "fa-triangle-exclamation",
+        okText: "Empty Bin",
+        onOk: function () {
+            submitAction("empty_bin");
+        }
+    });
 });
 
     // ---------- Edit task ----------
@@ -586,14 +691,17 @@ editTaskModal.addEventListener("click", function (event) {
 
 editTaskForm.addEventListener("submit", function (event) {
 
+    const problem = checkTaskFields(editTaskTitle, editTaskDate, editTaskPriority);
+
     // Quick check here; PHP validates again on the server
-    if (
-        !editTaskTitle.value.trim() ||
-        !editTaskDate.value ||
-        !editTaskPriority.value
-    ) {
+    if (problem) {
         event.preventDefault();
-        alert("Please complete the required task fields.");
+
+        openDialog(problem.message, {
+            onClose: function () {
+                problem.field.focus();
+            }
+        });
     }
 
     // Otherwise the form submits to index.php
