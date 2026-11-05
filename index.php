@@ -1,3 +1,171 @@
+<?php
+session_start();
+
+// ---------- Session storage ----------
+$_SESSION['tasks'] = $_SESSION['tasks'] ?? [];
+
+$errors = [];
+$showAddModal = false;
+
+// ---------- Server-side validation ----------
+function validateTask($title, $description, $date, $priority)
+{
+    $errs = [];
+
+    if ($title === '') {
+        $errs[] = "Task title cannot be empty.";
+    } elseif (strlen($title) < 3) {
+        $errs[] = "Task title must be at least 3 characters long.";
+    } elseif (strlen($title) > 100) {
+        $errs[] = "Task title cannot exceed 100 characters.";
+    }
+
+    if (strlen($description) > 255) {
+        $errs[] = "Description cannot exceed 255 characters.";
+    }
+
+    $d = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$d || $d->format('Y-m-d') !== $date) {
+        $errs[] = "Please choose a valid due date.";
+    }
+
+    if (!in_array($priority, ['low', 'medium', 'high'], true)) {
+        $errs[] = "Please choose a valid priority.";
+    }
+
+    return $errs;
+}
+
+// ---------- Print one task <li> (used for the list and the Bin) ----------
+function renderTask($id, $task, $inBin = false)
+{ ?>
+    <li class="task-item<?= $task['status'] === 'completed' ? ' completed' : '' ?>"
+        draggable="true"
+        data-id="<?= htmlspecialchars($id) ?>"
+        data-date="<?= htmlspecialchars($task['date']) ?>"
+        data-priority="<?= htmlspecialchars($task['priority']) ?>"
+        data-status="<?= htmlspecialchars($task['status']) ?>"
+        data-important="<?= $task['priority'] === 'high' ? 'true' : 'false' ?>">
+
+        <div class="task-card">
+
+            <div class="task-title-row">
+                <input type="checkbox" class="task-checkbox"
+                    <?= $task['status'] === 'completed' ? 'checked' : '' ?>>
+                <h3><?= htmlspecialchars($task['title']) ?></h3>
+            </div>
+
+            <p class="task-description"><?= htmlspecialchars($task['description']) ?></p>
+
+            <div class="task-meta">
+                <span class="task-date"><?= date('F j, Y', strtotime($task['date'])) ?></span>
+                <span class="priority-badge <?= htmlspecialchars($task['priority']) ?>">
+                    <?= strtoupper(htmlspecialchars($task['priority'])) ?>
+                </span>
+            </div>
+
+            <button class="delete-task-btn" type="button" title="Delete task">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+
+            <?php if ($inBin): ?>
+            <div class="bin-actions">
+                <button type="button" class="restore-task-btn">
+                    <i class="fas fa-undo"></i> Restore
+                </button>
+                <button type="button" class="permanent-delete-btn">
+                    <i class="fas fa-trash"></i> Permanently Delete
+                </button>
+            </div>
+            <?php endif; ?>
+
+        </div>
+    </li>
+<?php }
+
+// ---------- Handle POST: Create, Update, Delete ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $action = $_POST['action'] ?? (isset($_POST['add_task']) ? 'add' : '');
+    $id     = $_POST['id'] ?? '';
+    $exists = isset($_SESSION['tasks'][$id]);
+
+    switch ($action) {
+
+        case 'add':      // CREATE
+        case 'edit':     // UPDATE
+            $title       = trim($_POST['task_title'] ?? '');
+            $description = trim($_POST['task_description'] ?? '');
+            $date        = $_POST['task_date'] ?? '';
+            $priority    = strtolower($_POST['task_priority'] ?? '');
+
+            $errors = validateTask($title, $description, $date, $priority);
+
+            if (empty($errors)) {
+                $data = [
+                    'title'       => $title,
+                    'description' => $description,
+                    'date'        => $date,
+                    'priority'    => $priority,
+                ];
+
+                if ($action === 'add') {
+                    $_SESSION['tasks'][uniqid()] = $data + [
+                        'status'    => 'pending', 
+                        'deleted'   => false,
+                    ];
+                } elseif ($exists) {
+                    $_SESSION['tasks'][$id] = $data + $_SESSION['tasks'][$id];
+                }
+            } else {
+                $showAddModal = ($action === 'add');
+            }
+            break;
+
+        case 'toggle':   // mark completed / pending
+            if ($exists) {
+                $current = $_SESSION['tasks'][$id]['status'];
+                $_SESSION['tasks'][$id]['status'] =
+                    ($current === 'completed') ? 'pending' : 'completed';
+            }
+            break;
+
+        case 'trash':    // DELETE (move to Bin)
+            if ($exists) {
+                $_SESSION['tasks'][$id]['deleted'] = true;
+            }
+            break;
+
+        case 'restore':  // take it back out of the Bin
+            if ($exists) {
+                $_SESSION['tasks'][$id]['deleted'] = false;
+            }
+            break;
+
+        case 'delete':   // DELETE permanently
+            unset($_SESSION['tasks'][$id]);
+            break;
+
+        case 'empty_bin':
+            foreach ($_SESSION['tasks'] as $taskId => $task) {
+                if ($task['deleted']) {
+                    unset($_SESSION['tasks'][$taskId]);
+                }
+            }
+            break;
+    }
+
+    // Post/Redirect/Get: refreshing the page will not re-submit the form
+    if (empty($errors)) {
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
+}
+
+// ---------- READ: split the session tasks into list and Bin ----------
+$activeTasks = array_filter($_SESSION['tasks'], fn($t) => !$t['deleted']);
+$binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -150,6 +318,15 @@
                 </div>
             </section>
 
+            <!-- Validation errors from PHP -->
+            <?php if (!empty($errors)): ?>
+                <div class="error-list">
+                    <?php foreach ($errors as $error): ?>
+                        <p><?= htmlspecialchars($error) ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
             <!-- Task Filters -->
             <section class="task-filters">
 
@@ -181,7 +358,7 @@
             <section class="task-list-section">
 
                 <ul class="task-list" id="task-list">
-                  <!-- PHP-generated task entries will appear here -->
+                  <?php foreach ($activeTasks as $id => $task) { renderTask($id, $task); } ?>
                  </ul>
 
               <!-- Empty Task Message -->
@@ -197,10 +374,10 @@
             <section class="bin-section" id="bin-section" style="display: none;">
 
                 <ul class="task-list" id="bin-task-list">
-                    <!-- Deleted tasks will appear here -->
+                    <?php foreach ($binTasks as $id => $task) { renderTask($id, $task, true); } ?>
                 </ul>
 
-                <div class="empty-state" id="bin-empty-state">
+                <div class="empty-state" id="bin-empty-state"<?= !empty($binTasks) ? ' style="display: none;"' : '' ?>>
                     <i class="fas fa-trash-alt"></i>
                     <h3>Your bin is empty!</h3>
                     <p>Deleted tasks will appear here.</p>
@@ -208,13 +385,13 @@
 
             </section>
 
-    </div>
-
         </main>
+
+    </div>   
 
 
         <!-- Add Task Modal -->
-    <section class="add-task-section" id="add-task-section">
+    <section class="add-task-section<?= $showAddModal ? ' show' : '' ?>" id="add-task-section">
 
     <div class="modal-overlay" id="modal-overlay"></div>
 
@@ -297,20 +474,23 @@
             <button type="button" id="closeEditModal">&times;</button>
         </div>
 
-        <form id="editTaskForm">
+        <form id="editTaskForm" method="POST" action="">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id" id="editTaskId">
+
             <label for="editTaskTitle">Task Title</label>
-            <input type="text" id="editTaskTitle" required>
+            <input type="text" id="editTaskTitle" name="task_title" required>
 
             <label for="editTaskDescription">Description</label>
-            <textarea id="editTaskDescription"></textarea>
+            <textarea id="editTaskDescription" name="task_description"></textarea>
 
             <label for="editTaskDate">Due Date</label>
-            <input type="date" id="editTaskDate">
+            <input type="date" id="editTaskDate" name="task_date">
 
             <label for="editTaskPriority">Priority</label>
-            <select id="editTaskPriority">
+            <select id="editTaskPriority" name="task_priority">
                 <option value="low">Low</option>
-                <option value="medium">Medium</option>
+                <option value="medium" selected>Medium</option>
             <option value="high">High</option>
             </select>
 
@@ -323,6 +503,12 @@
     </div>
 
     
+    <!-- Hidden form used by script.js for toggle / trash / restore / delete / empty bin -->
+    <form id="action-form" method="POST" action="" hidden>
+        <input type="hidden" name="action" id="action-type">
+        <input type="hidden" name="id" id="action-id">
+    </form>
+
     <!-- External JavaScript -->
     <script src="script.js" defer></script>
 

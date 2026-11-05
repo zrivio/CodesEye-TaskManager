@@ -1,14 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     
-    // ===================================
-    // DARK MODE TOGGLE
-    // ===================================
+    // ---------- Dark mode ----------
 
     const themeToggle = document.getElementById("theme-toggle");
     const themeIcon = document.getElementById("theme-icon");
 
-    // Load saved theme
+    // Apply the theme saved in the browser
     const savedTheme = localStorage.getItem("taskManagerTheme");
 
     if (savedTheme === "dark") {
@@ -17,7 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
         themeToggle.setAttribute("aria-label", "Switch to light mode");
     }
 
-    // Switch theme when clicked
     themeToggle.addEventListener("click", function () {
 
         document.body.classList.toggle("dark-mode");
@@ -35,9 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // ===================================
-    // 1. ELEMENT REFERENCES
-    // ===================================
+    // ---------- Element references ----------
 
     const addTaskBtn = document.getElementById("add-task-btn");
     const addTaskSection = document.getElementById("add-task-section");
@@ -76,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ];
 
 
-    // EDIT TASK MODAL ELEMENTS
+    // Edit modal elements
     const editTaskModal = document.getElementById("editTaskModal");
     const editTaskForm = document.getElementById("editTaskForm");
 
@@ -99,134 +94,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let activeTab = "All Tasks";
 
+    // Sends toggle / trash / restore / delete / empty_bin to PHP
+    // through the hidden #action-form in index.php
+    function submitAction(action, id) {
+        document.getElementById("action-type").value = action;
+        document.getElementById("action-id").value = id || "";
+        document.getElementById("action-form").submit();
+    }
 
-    // ===================================
-// ADD NEW TASK MODAL
-// ===================================
 
-// OPEN MODAL
+    // ---------- Add task modal ----------
+
 addTaskBtn.addEventListener("click", function () {
     addTaskSection.classList.add("show");
 });
 
-// CLOSE MODAL
 function closeAddTaskModal() {
     addTaskSection.classList.remove("show");
 }
 
-// CLOSE BUTTON (X)
 closeTaskBtn.addEventListener("click", closeAddTaskModal);
 
-// CANCEL BUTTON
 cancelTaskBtn.addEventListener("click", closeAddTaskModal);
 
-// CLICK OUTSIDE MODAL
 modalOverlay.addEventListener("click", closeAddTaskModal);
 
 
 
-    // ===================================
-    // 3. TEMPORARY SAMPLE TASKS
-    // Remove this section when mag-connect na sa backend
-    // ===================================
-
-    taskList.innerHTML = `
-
-        <li class="task-item"
-            data-date="2026-11-03"
-            data-priority="High"
-            data-status="pending"
-            data-important="true">
-
-            <div class="task-card">
-
-                <div class="task-title-row">
-                    <input type="checkbox" class="task-checkbox">
-                    <h3>Finish Web Development activity</h3>
-                </div>
-
-                <p class="task-description">
-                    Complete the JavaScript functionality.
-                </p>
-
-                <div class="task-meta">
-                    <span class="task-date">November 3, 2026</span>
-                    <span class="priority-badge high">HIGH</span>
-                </div>
-
-                <button class="delete-task-btn" type="button" title="Delete task">
-                <i class="fas fa-trash-alt"></i>
-                </button>
-
-            </div>
-        </li>
 
 
-        <li class="task-item"
-            data-date="2026-11-05"
-            data-priority="Low"
-            data-status="pending"
-            data-important="false">
-
-            <div class="task-card">
-
-                <div class="task-title-row">
-                    <input type="checkbox" class="task-checkbox">
-                    <h3>Submit Multimedia assignment</h3>
-                </div>
-
-                <p class="task-description">
-                    Finalize the poster redesign.
-                </p>
-
-                <div class="task-meta">
-                    <span class="task-date">November 5, 2026</span>
-                    <span class="priority-badge low">LOW</span>
-                </div>
-
-                <button class="delete-task-btn" type="button" title="Delete task">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-
-            </div>
-        </li>
-
-
-        <li class="task-item"
-            data-date="2026-11-02"
-            data-priority="Medium"
-            data-status="pending"
-            data-important="false">
-
-            <div class="task-card">
-
-                <div class="task-title-row">
-                    <input type="checkbox" class="task-checkbox">
-                    <h3>Study for examination</h3>
-                </div>
-
-                <p class="task-description">
-                    Review the upcoming lessons.
-                </p>
-
-                <div class="task-meta">
-                    <span class="task-date">November 2, 2026</span>
-                    <span class="priority-badge medium">MEDIUM</span>
-                </div>
-
-                <button class="delete-task-btn" type="button" title="Delete task">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-
-            </div>
-        </li>
-
-    `;
-
-
-    // ===================================
-    // 4. TASK FILTERING
-    // ===================================
+    // ---------- Filtering ----------
 
     function applyTaskFilters() {
 
@@ -234,7 +131,6 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
         const selectedPriority = priorityFilter.value;
         const selectedDate = dateFilter.value;
 
-        // Get today's date
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -245,7 +141,7 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
         ].join("-");
 
 
-        // Get Monday and Sunday of the current week
+        // Weeks run Monday to Sunday
         const startOfWeek = new Date(today);
 
         const day = today.getDay();
@@ -260,7 +156,6 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
         endOfWeek.setHours(23, 59, 59, 999);
 
 
-        // Get beginning and end of current month
         const startOfMonth = new Date(
             today.getFullYear(),
             today.getMonth(),
@@ -301,14 +196,12 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
 
             let showTask = true;
 
-
-            // SEARCH FILTER
+            // Search text
             if (!taskText.includes(searchValue)) {
                 showTask = false;
             }
 
-
-            // PRIORITY FILTER
+            // Priority
             if (
                 selectedPriority !== "all" &&
                 priority !== selectedPriority
@@ -317,7 +210,7 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
             }
 
 
-            // DUE DATE FILTER
+            // Due date
 
             if (selectedDate === "today") {
 
@@ -332,7 +225,6 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
                     taskDate !== null &&
                     taskDate >= startOfWeek &&
                     taskDate <= endOfWeek;
-
             }
 
             else if (selectedDate === "month") {
@@ -341,7 +233,6 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
                     taskDate !== null &&
                     taskDate >= startOfMonth &&
                     taskDate <= endOfMonth;
-
             }
 
             else if (selectedDate === "overdue") {
@@ -350,37 +241,31 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
                     taskDate !== null &&
                     taskDate < today &&
                     status !== "completed";
-
             }
 
 
-            // SIDEBAR FILTER
+            // Sidebar tab (Today / Important / Completed)
 
             if (activeTab === "Today") {
 
                 showTask = showTask &&
                     dateValue === todayDate;
-
             }
 
             else if (activeTab === "Important") {
 
                 showTask = showTask &&
                     important === "true";
-
             }
 
             else if (activeTab === "Completed") {
 
                 showTask = showTask &&
                     status === "completed";
-
             }
 
 
-            // SHOW OR HIDE TASK
             task.style.display = showTask ? "" : "none";
-
 
             if (showTask) {
                 visibleTasks++;
@@ -389,7 +274,7 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
         });
 
 
-        // SHOW EMPTY STATE WHEN NO TASKS MATCH
+        // Show the empty message when nothing matches
         emptyState.style.display =
             visibleTasks === 0 ? "block" : "none";
 
@@ -398,50 +283,39 @@ modalOverlay.addEventListener("click", closeAddTaskModal);
     }
 
 
-// ===================================
-// SIDEBAR TAB SWITCHING
-// ===================================
+// ---------- Sidebar tabs ----------
 
 function switchTab(tab, clickedButton) {
 
-    // Remove active highlight from all buttons
     sidebarButtons.forEach(function (button) {
         button.classList.remove("active");
     });
 
-    // Highlight selected button
     clickedButton.classList.add("active");
 
-    // Update page heading
     currentView.textContent = tab;
 
-    // Remember selected sidebar tab
     activeTab = tab;
     document.body.classList.toggle("bin-view", tab === "Bin");
 
     console.log("Current active tab:", activeTab);
 
-    // Check if Bin is selected
     const isBin = tab === "Bin";
 
-    // Toggle regular task content
+    // Bin view swaps out the regular list and its filters
     taskFilters.style.display = isBin ? "none" : "";
     taskListSection.style.display = isBin ? "none" : "";
 
-    // Toggle Bin content
     binSection.style.display = isBin ? "block" : "none";
 
-    // Hide regular empty state while viewing Bin
     emptyState.style.display = isBin ? "none" : "";
 
-    // Apply filters only on regular task pages
+    // Filters only apply to the regular list
     if (!isBin) {
         applyTaskFilters();
     }
 }
 
-
-    // SIDEBAR BUTTON EVENTS
 
     allTasksBtn.addEventListener("click", function () {
         switchTab("All Tasks", allTasksBtn);
@@ -464,44 +338,35 @@ function switchTab(tab, clickedButton) {
     });
 
 
-    // ===================================
-    // 6. SEARCH AND DROPDOWN FILTERS
-    // ===================================
+    // ---------- Search and filter events ----------
 
-    // Search tasks
     taskSearch.addEventListener("input", applyTaskFilters);
 
 
-    // Filter by priority
     priorityFilter.addEventListener("change", applyTaskFilters);
 
 
-    // Filter by due date
     dateFilter.addEventListener("change", applyTaskFilters);
 
 
-// ===================================
-// 7. SORT TASKS
-// ===================================
+// ---------- Sorting ----------
 
 const sortTasksBtn = document.getElementById("sort-tasks-btn");
 const sortDropdown = document.getElementById("sort-dropdown");
 
 const sortOptions = document.querySelectorAll("[data-sort]");
 
-// Show or hide sort options
 sortTasksBtn.addEventListener("click", function () {
     sortDropdown.classList.toggle("show");
 });
 
-// Sort selected option
 sortOptions.forEach(function (option) {
 
     option.addEventListener("click", function () {
 
         const sortType = option.dataset.sort;
 
-        // Detect which task list is currently active
+        // Sort whichever list is on screen (regular or Bin)
         const targetTaskList = activeTab === "Bin"
             ? binTaskList
             : taskList;
@@ -510,7 +375,7 @@ sortOptions.forEach(function (option) {
             targetTaskList.querySelectorAll(".task-item")
         );
 
-        // ALPHABETICAL SORT
+        // A-Z
         if (sortType === "alphabetical") {
 
             tasks.sort(function (a, b) {
@@ -524,7 +389,7 @@ sortOptions.forEach(function (option) {
 
         }
 
-        // DUE DATE SORT
+        // earliest due date first
         else if (sortType === "date") {
 
             tasks.sort(function (a, b) {
@@ -537,7 +402,7 @@ sortOptions.forEach(function (option) {
 
         }
 
-        // PRIORITY SORT
+        // high to low
         else if (sortType === "priority") {
 
             const priorityOrder = {
@@ -558,21 +423,19 @@ sortOptions.forEach(function (option) {
 
         }
 
-        // Rearrange task elements in the active list
+        // Put the sorted tasks back in the list
         tasks.forEach(function (task) {
             targetTaskList.appendChild(task);
         });
 
-        // Close dropdown
         sortDropdown.classList.remove("show");
 
-        // Update sort button text
         sortTasksBtn.innerHTML =
             '<i class="fas fa-sort"></i> ' +
             option.textContent.trim() +
             ' <i class="fas fa-chevron-down"></i>';
 
-        // Reapply filters only for regular task lists
+        // The Bin has no filters
         if (activeTab !== "Bin") {
             applyTaskFilters();
         }
@@ -582,160 +445,31 @@ sortOptions.forEach(function (option) {
 });
 
 
-    // ===================================
-    // 8. ADD NEW TASK WITH PRIORITY BADGE
-    // ===================================
+    // ---------- Add task (form submits to PHP) ----------
 
     addTaskForm.addEventListener("submit", function (event) {
-
-        event.preventDefault();
 
         const formData = new FormData(addTaskForm);
 
         const title = formData.get("task_title").trim();
-
-        const description = formData.get("task_description").trim();
-
         const date = formData.get("task_date");
-
         const priority = formData.get("task_priority");
 
-
-        // Validate required fields
+        // Quick check here; PHP validates again on the server
         if (!title || !date || !priority) {
+
+            event.preventDefault();
 
             alert("Please complete the required task fields.");
 
-            return;
-
         }
 
-
-        // Determine badge color
-        const priorityClass = priority.toLowerCase();
-
-
-        // Create task list item
-        const newTask = document.createElement("li");
-
-        newTask.draggable = true;
-
-        newTask.className = "task-item";
-
-        newTask.dataset.date = date;
-
-        newTask.dataset.priority = priority;
-
-        newTask.dataset.status = "pending";
-
-        newTask.dataset.important = "false";
-
-
-        // Create task card
-        const taskCard = document.createElement("div");
-
-        taskCard.className = "task-card";
-
-        // Create delete button
-    const deleteBtn = document.createElement("button");
-
-    deleteBtn.className = "delete-task-btn";
-    deleteBtn.type = "button";
-    deleteBtn.title = "Delete task";
-
-    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-
-        // Create title row
-        const titleRow = document.createElement("div");
-
-        titleRow.className = "task-title-row";
-
-
-        // Create checkbox
-        const checkbox = document.createElement("input");
-
-        checkbox.type = "checkbox";
-
-        checkbox.className = "task-checkbox";
-
-
-        // Create title
-        const taskTitle = document.createElement("h3");
-
-        taskTitle.textContent = title;
-
-
-        titleRow.append(checkbox, taskTitle, deleteBtn);
-
-
-        // Create description
-        const taskDescription = document.createElement("p");
-
-        taskDescription.className = "task-description";
-
-        taskDescription.textContent = description;
-
-
-        // Create task metadata
-        const taskMeta = document.createElement("div");
-
-        taskMeta.className = "task-meta";
-
-
-        // Create formatted date
-        const taskDate = document.createElement("span");
-
-        taskDate.className = "task-date";
-
-        taskDate.textContent = new Date(date + "T00:00:00")
-            .toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            });
-
-
-        // Create priority badge
-        const priorityBadge = document.createElement("span");
-
-        priorityBadge.className =
-            "priority-badge " + priorityClass;
-
-        priorityBadge.textContent = priority.toUpperCase();
-
-
-        // Assemble task card
-        taskMeta.append(taskDate, priorityBadge);
-
-        taskCard.append(
-            titleRow,
-            taskDescription,
-            taskMeta,
-            deleteBtn
-        );
-
-        newTask.appendChild(taskCard);
-
-
-        // Add task to the list
-        taskList.appendChild(newTask);
-
-
-        // Reset and hide form
-        addTaskForm.reset();
-
-        addTaskSection.classList.remove("show");
-
-
-        // Reapply active filters
-        applyTaskFilters();
+        // Otherwise the form submits to index.php
 
     });
 
 
-    // ===================================
-    // 9. TASK COMPLETION
-    // ===================================
+    // ---------- Mark task as completed ----------
 
     taskList.addEventListener("change", function (event) {
 
@@ -743,34 +477,14 @@ sortOptions.forEach(function (option) {
 
             const task = event.target.closest(".task-item");
 
-
-            if (event.target.checked) {
-
-                task.dataset.status = "completed";
-
-                task.classList.add("completed");
-
-            }
-
-            else {
-
-                task.dataset.status = "pending";
-
-                task.classList.remove("completed");
-
-            }
-
-
-            // Reapply filters after completion
-            applyTaskFilters();
+            // PHP toggles pending/completed and reloads the page
+            submitAction("toggle", task.dataset.id);
 
         }
 
     });
 
-// ===================================
-// 10. DELETE TASK (MOVE TO BIN)
-// ===================================
+// ---------- Delete task (moves it to the Bin) ----------
 
 taskList.addEventListener("click", function (event) {
     const deleteBtn = event.target.closest(".delete-task-btn");
@@ -780,76 +494,31 @@ taskList.addEventListener("click", function (event) {
     if (!task) return;
 
     if (confirm("Move this task to the Bin?")) {
-
-        // Create Bin action buttons
-        const binActions = document.createElement("div");
-        binActions.className = "bin-actions";
-
-        binActions.innerHTML = `
-            <button type="button" class="restore-task-btn">
-                <i class="fas fa-undo"></i> Restore
-            </button>
-
-            <button type="button" class="permanent-delete-btn">
-                <i class="fas fa-trash"></i> Permanently Delete
-            </button>
-        `;
-
-        const taskCard = task.querySelector(".task-card");
-
-    if (taskCard) {
-    taskCard.appendChild(binActions);
-    }
-
-        // Move task to Bin
-        binTaskList.appendChild(task);
-
-        applyTaskFilters();
-        binEmptyState.style.display = "none";
+        submitAction("trash", task.dataset.id);
     }
 });
 
-    // ===================================
-// 11. BIN ACTIONS
-// ===================================
+    // ---------- Bin: restore or delete permanently ----------
 
 binTaskList.addEventListener("click", function (event) {
 
     const task = event.target.closest(".task-item");
     if (!task) return;
 
-    // RESTORE TASK
-    const restoreBtn = event.target.closest(".restore-task-btn");
-
-    if (restoreBtn) {
-        task.querySelector(".bin-actions").remove();
-
-        taskList.appendChild(task);
-
-        binEmptyState.style.display =
-            binTaskList.children.length === 0 ? "block" : "none";
-
-        applyTaskFilters();
+    if (event.target.closest(".restore-task-btn")) {
+        submitAction("restore", task.dataset.id);
         return;
     }
 
-    // PERMANENTLY DELETE TASK
-    const permanentDeleteBtn = event.target.closest(".permanent-delete-btn");
-
-    if (permanentDeleteBtn) {
+    if (event.target.closest(".permanent-delete-btn")) {
         if (confirm("Permanently delete this task? This cannot be undone.")) {
-            task.remove();
-
-            binEmptyState.style.display =
-                binTaskList.children.length === 0 ? "block" : "none";
+            submitAction("delete", task.dataset.id);
         }
     }
 });
 
 
-    // ===================================
-// 12. EMPTY BIN
-// ===================================
+    // ---------- Empty Bin ----------
 
 emptyBinBtn.addEventListener("click", function () {
 
@@ -859,23 +528,15 @@ emptyBinBtn.addEventListener("click", function () {
     }
 
     if (confirm("Are you sure you want to permanently delete all tasks in the Bin? This cannot be undone.")) {
-
-        // Permanently remove all deleted tasks
-        binTaskList.innerHTML = "";
-
-        // Show empty Bin message
-        binEmptyState.style.display = "block";
+        submitAction("empty_bin");
     }
 });
 
-    // ===================================
-// 11. EDIT TASK
-// ===================================
+    // ---------- Edit task ----------
 
-// OPEN EDIT MODAL
 taskList.addEventListener("click", function (event) {
 
-    // Ignore checkbox and delete button clicks
+    // Checkbox and trash icon have their own actions
     if (
         event.target.closest(".task-checkbox") ||
         event.target.closest(".delete-task-btn")
@@ -891,7 +552,6 @@ taskList.addEventListener("click", function (event) {
 
     if (!editingTask) return;
 
-    // Get current task details
     editTaskTitle.value =
         taskCard.querySelector(".task-title-row h3").textContent;
 
@@ -900,15 +560,16 @@ taskList.addEventListener("click", function (event) {
 
     editTaskDate.value = editingTask.dataset.date;
 
+    // Tell PHP which task is being edited
+    document.getElementById("editTaskId").value = editingTask.dataset.id;
+
     editTaskPriority.value =
         editingTask.dataset.priority.toLowerCase();
 
-    // Show modal
     editTaskModal.style.display = "flex";
 });
 
 
-// CLOSE EDIT MODAL
 function closeEditTaskModal() {
     editTaskModal.style.display = "none";
     editingTask = null;
@@ -917,78 +578,35 @@ function closeEditTaskModal() {
 closeEditModal.addEventListener("click", closeEditTaskModal);
 cancelEdit.addEventListener("click", closeEditTaskModal);
 
-// CLOSE WHEN CLICKING OUTSIDE
 editTaskModal.addEventListener("click", function (event) {
     if (event.target === editTaskModal) {
         closeEditTaskModal();
     }
 });
 
-// SAVE EDITED TASK
 editTaskForm.addEventListener("submit", function (event) {
 
-    event.preventDefault();
-
-    if (!editingTask) return;
-
-    const title = editTaskTitle.value.trim();
-    const description = editTaskDescription.value.trim();
-    const date = editTaskDate.value;
-    const priority = editTaskPriority.value;
-
-    if (!title || !date || !priority) {
+    // Quick check here; PHP validates again on the server
+    if (
+        !editTaskTitle.value.trim() ||
+        !editTaskDate.value ||
+        !editTaskPriority.value
+    ) {
+        event.preventDefault();
         alert("Please complete the required task fields.");
-        return;
     }
 
-    const taskCard = editingTask.querySelector(".task-card");
-
-    // Update title
-    taskCard.querySelector(".task-title-row h3").textContent = title;
-
-    // Update description
-    taskCard.querySelector(".task-description").textContent = description;
-
-    // Update date
-    editingTask.dataset.date = date;
-
-    taskCard.querySelector(".task-date").textContent =
-        new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-        });
-
-    // Update priority
-    editingTask.dataset.priority = priority;
-
-    const priorityBadge =
-        taskCard.querySelector(".priority-badge");
-
-    priorityBadge.className =
-        "priority-badge " + priority;
-
-    priorityBadge.textContent = priority.toUpperCase();
-
-    // Close modal
-    closeEditTaskModal();
-
-    // Refresh filters and statistics
-    applyTaskFilters();
+    // Otherwise the form submits to index.php
 });
 
-    // ===================================
-// DRAG AND DROP TASKS
-// ===================================
+    // ---------- Drag and drop (reorders on screen only, not saved) ----------
 
 let draggedTask = null;
 
-// Make existing tasks draggable
 taskList.querySelectorAll(".task-item").forEach(task => {
     task.draggable = true;
 });
 
-// Start dragging
 taskList.addEventListener("dragstart", function (event) {
     const task = event.target.closest(".task-item");
 
@@ -1000,7 +618,6 @@ taskList.addEventListener("dragstart", function (event) {
     event.dataTransfer.effectAllowed = "move";
 });
 
-// While dragging over another task
 taskList.addEventListener("dragover", function (event) {
     event.preventDefault();
 
@@ -1018,7 +635,6 @@ taskList.addEventListener("dragover", function (event) {
     }
 });
 
-// Finish dragging
 taskList.addEventListener("dragend", function () {
     if (draggedTask) {
         draggedTask.classList.remove("dragging");
@@ -1028,10 +644,7 @@ taskList.addEventListener("dragend", function () {
 });
 
 
-    // ===================================
-    // UPDATE TASK STATISTICS
-    // ===================================
-
+    // ---------- Statistics ----------
     function updateTaskStatistics() {
 
         const tasks = taskList.querySelectorAll(".task-item");
@@ -1053,10 +666,7 @@ taskList.addEventListener("dragend", function () {
     }
 
 
-    // ===================================
-    // 10. INITIAL PAGE VIEW
-    // ===================================
-
+    // ---------- Initial view ----------
     switchTab("All Tasks", allTasksBtn);
 
 });
