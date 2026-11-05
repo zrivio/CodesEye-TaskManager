@@ -95,6 +95,7 @@ button {
     margin-top: 30px;
 }
 
+.sidebar-title,
 .stats-section h4 {
     font-size: 20px;
     margin-bottom: 15px;
@@ -107,13 +108,13 @@ button {
     align-items: center;
     margin-bottom: 12px;
     color: #716a7d;
-    font-size: 17px;
+    font-size: 14px;
 }
 
 .stats-item span:last-child {
     font-weight: bold;
     color: #7955ad;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 /* ---------- Main task content ---------- */
@@ -298,7 +299,8 @@ button {
     box-sizing: border-box;
 }
 
-body #add-task-section.show {
+body #add-task-section.show,
+body #editTaskModal.show {
     display: flex !important;
     position: fixed !important;
     inset: 0 !important;
@@ -308,7 +310,8 @@ body #add-task-section.show {
 }
 /* Description spans the full row */
 
-.form-group:has(textarea) {
+.form-group:has(textarea),
+.form-group-full {
     grid-column: 1 / -1;
 }
 
@@ -593,6 +596,7 @@ body #add-task-section.show {
     }
 
     .form-group:has(textarea),
+    .form-group-full,
     .form-buttons {
         grid-column: 1;
     }
@@ -685,8 +689,8 @@ body #add-task-section.show {
 
     display: flex;
     flex-direction: column;
-    height: 100%;
-    min-height: 230px;
+    height: auto;
+    min-height: 0;
     box-sizing: border-box;
     cursor: pointer;
 }
@@ -713,7 +717,7 @@ body.dark-mode .task-card {
 }
 
 .task-title-row {
-    padding-right: 30px;
+    padding-right: 76px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -768,7 +772,7 @@ body.dark-mode .task-card {
     font-size: 14px;
     color: #777184;
     margin: 12px 0;
-    min-height: 45px;
+    overflow-wrap: anywhere;
 }
 
 .task-meta {
@@ -776,7 +780,7 @@ body.dark-mode .task-card {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: auto;
+    margin-top: 12px;
 
 }
 
@@ -817,29 +821,6 @@ body.dark-mode .task-card {
 }
 
 
-/* ---------- Edit task modal ---------- */
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    inset: 0;
-    background: rgba(39, 20, 45, 0.45);
-
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.modal-content {
-    background: #ffffff;
-    width: 100%;
-    max-width: 450px;
-    padding: 24px;
-    border-radius: 16px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
-}
-
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -854,54 +835,6 @@ body.dark-mode .task-card {
     cursor: pointer;
     color: #777;
 }
-
-#editTaskForm {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-#editTaskForm input,
-#editTaskForm textarea,
-#editTaskForm select {
-    width: 100%;
-    padding: 11px;
-    border: 1px solid #ded8e8;
-    border-radius: 8px;
-    outline: none;
-}
-
-#editTaskForm textarea {
-    resize: vertical;
-    min-height: 90px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.modal-actions button {
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-#cancelEdit {
-    background: #eeeaf3;
-    color: #51465f;
-}
-
-#saveEdit {
-    background: #8b65c7;
-    color: white;
-}
-
-
-
 
 /* ---------- Dark mode toggle ---------- */
 
@@ -1115,8 +1048,7 @@ body.dark-mode .empty-state p {
 
 /* ---------- Dark mode: modals ---------- */
 
-body.dark-mode .add-task-modal,
-body.dark-mode .modal-content {
+body.dark-mode .add-task-modal {
     background: #252131;
     color: #f0eafa;
 }
@@ -1125,27 +1057,21 @@ body.dark-mode .modal-header {
     border-bottom-color: #40394d;
 }
 
-body.dark-mode .add-task-modal h3,
-body.dark-mode .modal-content h3 {
+body.dark-mode .add-task-modal h3 {
     color: #c9a9f5;
 }
 
-body.dark-mode .add-task-modal p,
-body.dark-mode .modal-content p {
+body.dark-mode .add-task-modal p {
     color: #c8bfd5;
 }
 
-body.dark-mode .add-task-modal label,
-body.dark-mode #editTaskForm label {
+body.dark-mode .add-task-modal label {
     color: #e5dced;
 }
 
 body.dark-mode .add-task-modal input,
 body.dark-mode .add-task-modal textarea,
-body.dark-mode .add-task-modal select,
-body.dark-mode #editTaskForm input,
-body.dark-mode #editTaskForm textarea,
-body.dark-mode #editTaskForm select {
+body.dark-mode .add-task-modal select {
     background: #302b3b;
     color: #f3effa;
     border: 1px solid #514761;
@@ -1153,18 +1079,13 @@ body.dark-mode #editTaskForm select {
 }
 
 body.dark-mode .add-task-modal input::placeholder,
-body.dark-mode .add-task-modal textarea::placeholder,
-body.dark-mode #editTaskForm input::placeholder,
-body.dark-mode #editTaskForm textarea::placeholder {
+body.dark-mode .add-task-modal textarea::placeholder {
     color: #a99eb8;
 }
 
 body.dark-mode .add-task-modal input:focus,
 body.dark-mode .add-task-modal textarea:focus,
-body.dark-mode .add-task-modal select:focus,
-body.dark-mode #editTaskForm input:focus,
-body.dark-mode #editTaskForm textarea:focus,
-body.dark-mode #editTaskForm select:focus {
+body.dark-mode .add-task-modal select:focus {
     border-color: #b995ed;
     outline: none;
 }
@@ -1174,25 +1095,14 @@ body.dark-mode #closeEditModal {
     color: #f3effa;
 }
 
-body.dark-mode .add-task-modal .form-buttons button,
-body.dark-mode .modal-actions button {
+body.dark-mode .add-task-modal .form-buttons button {
     background: #9b75d0;
     color: #ffffff;
     border: none;
 }
 
-body.dark-mode .add-task-modal .form-buttons button:hover,
-body.dark-mode .modal-actions button:hover {
+body.dark-mode .add-task-modal .form-buttons button:hover {
     background: #805bb5;
-}
-
-body.dark-mode #cancelEdit {
-    background: #40394d;
-    color: #e5dced;
-}
-
-body.dark-mode #cancelEdit:hover {
-    background: #514761;
 }
 
 body.dark-mode .modal-overlay {
@@ -1464,4 +1374,383 @@ body.dark-mode .app-dialog-actions .app-dialog-cancel {
 
 body.dark-mode .app-dialog-actions .app-dialog-cancel:hover {
     background: #62527a;
+}
+
+/* =====================================================================
+   Updates: branding, fixed layout, dynamic cards, animations, toasts
+   ===================================================================== */
+
+/* ---------- Branding (TaskaNa) ---------- */
+
+.header-content h1.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.5em;
+    height: 1.5em;
+
+    border-radius: 14px 14px 14px 4px;
+    background: linear-gradient(135deg, #a47fdc, #7955ad);
+    color: #ffffff;
+
+    font-size: 0.95em;
+    font-weight: 800;
+    line-height: 1;
+
+    transform: rotate(-8deg);
+    box-shadow: 0 3px 8px rgba(121, 85, 173, 0.35);
+    transition: transform 0.25s ease;
+}
+
+.brand:hover .brand-logo {
+    transform: rotate(8deg) scale(1.08);
+}
+
+/* ---------- Fixed navigation, scrolling content ---------- */
+
+body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.app-header {
+    flex: 0 0 auto;
+}
+
+.main-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sidebar {
+    overflow-y: auto;
+}
+
+.task-content {
+    overflow-y: auto;
+}
+
+@media (max-width: 850px) {
+
+    /* Stacked phone layout: the whole page scrolls instead */
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    .main-content {
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .sidebar,
+    .task-content {
+        overflow-y: visible;
+    }
+}
+
+/* ---------- Menu title ---------- */
+
+.sidebar-title {
+    margin-bottom: 15px;
+    color: #302b3d;
+}
+
+/* ---------- Task cards ---------- */
+
+/* Each card is as tall as its own content */
+.task-list {
+    align-items: start;
+}
+
+.task-description:empty {
+    display: none;
+}
+
+.task-title-row h3 {
+    overflow-wrap: anywhere;
+}
+
+.task-card-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.task-card-actions .delete-task-btn,
+.task-card-actions .edit-task-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+
+    font-size: 15px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.edit-task-btn {
+    color: #7955ad;
+}
+
+.edit-task-btn:hover {
+    background: #eee6f8;
+    color: #63418f;
+}
+
+body.dark-mode .edit-task-btn {
+    color: #c9a9f5;
+}
+
+body.dark-mode .edit-task-btn:hover {
+    background: #514366;
+    color: #e0caff;
+}
+
+#bin-task-list .task-card-actions {
+    display: none;
+}
+
+#bin-task-list .task-title-row {
+    padding-right: 30px;
+}
+
+/* ---------- Bin ---------- */
+
+body.bin-view #add-task-btn {
+    display: none;
+}
+
+.bin-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    margin-bottom: 20px;
+    padding: 12px 16px;
+
+    background: #efe6fb;
+    border: 1px solid #d8c8ee;
+    border-radius: 10px;
+
+    color: #51495e;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.bin-notice i {
+    margin-top: 3px;
+    color: #7955ad;
+}
+
+body.dark-mode .bin-notice {
+    background: #383149;
+    border-color: #514762;
+    color: #f5effb;
+}
+
+body.dark-mode .bin-notice i {
+    color: #c9a9f5;
+}
+
+/* ---------- Pop-up forms: blurred background ---------- */
+
+.modal-overlay,
+.app-dialog-overlay {
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+/* In dark mode the Add Task layer was solid, which hid the page behind it */
+body.dark-mode .add-task-section {
+    background: transparent;
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* "backwards" (not "both"): once finished, no transform is left behind, so the
+   Sort dropdown is never covered by the sections below the header */
+.page-enter {
+    animation: pageEnter 0.3s ease backwards;
+}
+
+.task-header {
+    position: relative;
+    z-index: 5;
+}
+
+@keyframes overlayIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+
+@keyframes popupIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes popupOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(14px) scale(0.97); }
+}
+
+/* Add Task form */
+.add-task-section.show .modal-overlay {
+    animation: overlayIn 0.2s ease both;
+}
+
+.add-task-section.show .add-task-modal {
+    animation: popupIn 0.25s ease both;
+}
+
+.add-task-section.closing .modal-overlay {
+    animation: overlayOut 0.2s ease both;
+}
+
+.add-task-section.closing .add-task-modal {
+    animation: popupOut 0.2s ease both;
+}
+
+/* Confirmation / message pop-up */
+.app-dialog.show .app-dialog-overlay {
+    animation: overlayIn 0.2s ease both;
+}
+
+.app-dialog.show .app-dialog-box {
+    animation: popupIn 0.25s ease both;
+}
+
+.app-dialog.closing .app-dialog-overlay {
+    animation: overlayOut 0.2s ease both;
+}
+
+.app-dialog.closing .app-dialog-box {
+    animation: popupOut 0.2s ease both;
+}
+
+/* ---------- Toast notifications ---------- */
+
+.toast-container {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2000000;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    max-width: 340px;
+    padding: 13px 18px;
+
+    background: #ffffff;
+    border: 1px solid #e5dcef;
+    border-left: 4px solid #7955ad;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(50, 35, 70, 0.18);
+
+    color: #302b3d;
+    font-size: 14px;
+    font-weight: 500;
+
+    pointer-events: auto;
+    cursor: pointer;
+
+    animation: toastIn 0.3s ease both;
+}
+
+.toast i {
+    color: #2f9e63;
+    font-size: 18px;
+}
+
+.toast.hide {
+    animation: toastOut 0.3s ease both;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(24px); }
+}
+
+body.dark-mode .toast {
+    background: #383149;
+    border-color: #514762;
+    border-left-color: #b995ed;
+    color: #f5effb;
+}
+
+body.dark-mode .toast i {
+    color: #6fd39b;
+}
+
+@media (max-width: 600px) {
+
+    .toast-container {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+    }
+
+    .toast {
+        max-width: none;
+    }
+}
+
+/* Respect the "reduce motion" setting */
+@media (prefers-reduced-motion: reduce) {
+
+    .page-enter,
+    .add-task-section.show .modal-overlay,
+    .add-task-section.show .add-task-modal,
+    .add-task-section.closing .modal-overlay,
+    .add-task-section.closing .add-task-modal,
+    .app-dialog.show .app-dialog-overlay,
+    .app-dialog.show .app-dialog-box,
+    .app-dialog.closing .app-dialog-overlay,
+    .app-dialog.closing .app-dialog-box,
+    .toast,
+    .toast.hide {
+        animation: none;
+    }
 }
