@@ -205,6 +205,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // PHP leaves a one-time message here after a successful add / edit / delete / restore
     showToast(toastContainer.dataset.message);
 
+    // The message arrives as ?notice=... in the address; remove it so a refresh does not show it again
+    if (toastContainer.dataset.message && window.history && history.replaceState) {
+        history.replaceState(null, "", window.location.pathname);
+    }
+
 
     // ---------- Pop-up message ----------
 
