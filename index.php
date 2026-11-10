@@ -1,8 +1,6 @@
 <?php
-session_start();
-
-// ---------- Session storage ----------
-$_SESSION['tasks'] = $_SESSION['tasks'] ?? [];
+// ---------- Database connection ----------
+require_once __DIR__ . '/db.php';
 
 $errors = [];
 $showAddModal = false;
@@ -19,31 +17,33 @@ $editId       = '';
 // removed from the Bin permanently.
 const BIN_RETENTION_DAYS = 30;
 
-// Removes every Bin task that has been in the Bin for 30 days or more.
-function purgeExpiredBinTasks()
+// Runs one SQL statement as a PDO prepared statement (prepare and execute).
+function runQuery(PDO $pdo, $sql, array $params = [])
 {
-    $cutoff = time() - (BIN_RETENTION_DAYS * 24 * 60 * 60);
+    $statement = $pdo->prepare($sql);
+    $statement->execute($params);
 
-    foreach ($_SESSION['tasks'] as $taskId => $task) {
+    return $statement;
+}
 
-        if (empty($task['deleted'])) {
-            continue;
-        }
-
-        // Tasks deleted before this feature existed start their 30 days now
-        if (empty($task['deleted_at'])) {
-            $_SESSION['tasks'][$taskId]['deleted_at'] = time();
-            continue;
-        }
-
-        if ($task['deleted_at'] <= $cutoff) {
-            unset($_SESSION['tasks'][$taskId]);
-        }
-    }
+// Removes every Bin task that has been in the Bin for 30 days or more.
+function purgeExpiredBinTasks(PDO $pdo)
+{
+    runQuery(
+        $pdo,
+        'DELETE FROM tasks
+          WHERE is_deleted = 1
+            AND deleted_at <= (NOW() - INTERVAL :days DAY)',
+        [':days' => BIN_RETENTION_DAYS]
+    );
 }
 
 // Runs on every request, before any action, so an expired task can never be restored
-purgeExpiredBinTasks();
+try {
+    purgeExpiredBinTasks($pdo);
+} catch (PDOException $e) {
+    error_log('[Task Manager] Bin clean-up failed: ' . $e->getMessage());
+}
 
 // ---------- Input helpers ----------
 
@@ -53,13 +53,58 @@ function textLength($text)
     return function_exists('mb_strlen') ? mb_strlen($text, 'UTF-8') : strlen($text);
 }
 
-// Reads one text field from $_POST. Anything that is not a plain string
-// (for example task_title[]=x) counts as empty instead of crashing PHP.
+// Reads one text field from $_POST. Anything that is not a 
+// plain string counts as empty instead of crashing PHP.
 function postString($key)
 {
     $value = $_POST[$key] ?? '';
 
     return is_string($value) ? $value : '';
+}
+
+// Turns the posted id into a positive whole number (or null if it is not one)
+function postId()
+{
+    $id = filter_var(postString('id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+    return $id === false ? null : $id;
+}
+
+// SELECT one task (just what the actions need), or null if there is no such task
+function findTask(PDO $pdo, $id)
+{
+    if ($id === null) {
+        return null;
+    }
+
+    $task = runQuery(
+        $pdo,
+        'SELECT id, status, is_deleted FROM tasks WHERE id = :id',
+        [':id' => $id]
+    )->fetch();
+
+    return $task === false ? null : $task;
+}
+
+// SELECT the tasks for the list ($inBin = false) or for the Bin ($inBin = true).
+// Column names match what renderTask() reads; the result is keyed by task id.
+function fetchTasks(PDO $pdo, $inBin)
+{
+    return runQuery(
+        $pdo,
+        'SELECT id,
+                title,
+                description,
+                due_date AS `date`,
+                priority,
+                status,
+                completed_at,
+                UNIX_TIMESTAMP(deleted_at) AS deleted_at
+           FROM tasks
+          WHERE is_deleted = :in_bin
+          ORDER BY id ASC',
+        [':in_bin' => $inBin ? 1 : 0]
+    )->fetchAll(PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC);
 }
 
 // ---------- Server-side validation ----------
@@ -149,131 +194,186 @@ function renderTask($id, $task, $inBin = false)
 <?php }
 
 // ---------- Handle POST: Create, Update, Delete ----------
+// Short messages for the toast
+$notices = [
+    'added'    => 'Task added successfully.',
+    'updated'  => 'Task updated successfully.',
+    'trashed'  => 'Task moved to Bin.',
+    'restored' => 'Task restored successfully.',
+];
+
+$notice = null;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $action = isset($_POST['action']) ? postString('action') : (isset($_POST['add_task']) ? 'add' : '');
-    $id     = postString('id');
-    $exists = isset($_SESSION['tasks'][$id]);
+    try {
 
-    switch ($action) {
+        $action = isset($_POST['action']) ? postString('action') : (isset($_POST['add_task']) ? 'add' : '');
+        $id     = postId();
+        $task   = findTask($pdo, $id);
+        $exists = $task !== null;
 
-        case 'add':      // CREATE
-        case 'edit':     // UPDATE
-            $title       = trim(postString('task_title'));
-            $description = trim(postString('task_description'));
-            $date        = postString('task_date');
-            $priority    = strtolower(postString('task_priority'));
+        switch ($action) {
 
-            $errors = validateTask($title, $description, $date, $priority);
+            case 'add':      // CREATE  (INSERT)
+            case 'edit':     // UPDATE
+                $title       = trim(postString('task_title'));
+                $description = trim(postString('task_description'));
+                $date        = postString('task_date');
+                $priority    = strtolower(postString('task_priority'));
 
-            if (empty($errors)) {
-                $data = [
-                    'title'       => $title,
-                    'description' => $description,
-                    'date'        => $date,
-                    'priority'    => $priority,
-                ];
+                $errors = validateTask($title, $description, $date, $priority);
 
-                if ($action === 'add') {
-                    $_SESSION['tasks'][uniqid()] = $data + [
-                        'status'       => 'pending', 
-                        'deleted'      => false,
-                        'completed_at' => null,
-                        'deleted_at'   => null,
-                    ];
-                    $_SESSION['flash'] = 'Task added successfully.';
-                } elseif ($exists) {
-                    $_SESSION['tasks'][$id] = $data + $_SESSION['tasks'][$id];
-                    $_SESSION['flash'] = 'Task updated successfully.';
-                }
-            } else {
-                // Give the form back what the person typed and re-open the same
-                // pop-up, so the errors are shown inside it and nothing is lost
-                $submitted = [
-                    'title'       => $title,
-                    'description' => $description,
-                    'date'        => $date,
-                    'priority'    => in_array($priority, ['low', 'medium', 'high'], true) ? $priority : 'medium',
-                ];
+                if (empty($errors)) {
 
-                if ($action === 'add') {
-                    $showAddModal = true;
-                    $addForm      = $submitted;
-                } elseif ($exists) {
-                    $showEditModal = true;
-                    $editForm      = $submitted;
-                    $editId        = $id;
-                }
-            }
-            break;
-
-        case 'toggle':   // mark completed / pending
-            if ($exists) {
-                $current = $_SESSION['tasks'][$id]['status'];
-
-                if ($current === 'completed') {
-                    $_SESSION['tasks'][$id]['status']       = 'pending';
-                    $_SESSION['tasks'][$id]['completed_at'] = null;
-                } else {
-                    // The browser sends its own local date so "completed late"
-                    // matches the person's day, not the server's time zone
-                    $completedOn = postString('completed_on');
-                    $cd = DateTime::createFromFormat('Y-m-d', $completedOn);
-                    if (!$cd || $cd->format('Y-m-d') !== $completedOn) {
-                        $completedOn = date('Y-m-d');
+                    if ($action === 'add') {
+                        runQuery(
+                            $pdo,
+                            'INSERT INTO tasks (title, description, due_date, priority)
+                             VALUES (:title, :description, :due_date, :priority)',
+                            [
+                                ':title'       => $title,
+                                ':description' => $description,
+                                ':due_date'    => $date,
+                                ':priority'    => $priority,
+                            ]
+                        );
+                        $notice = 'added';
+                    } elseif ($exists) {
+                        runQuery(
+                            $pdo,
+                            'UPDATE tasks
+                                SET title = :title,
+                                    description = :description,
+                                    due_date = :due_date,
+                                    priority = :priority
+                              WHERE id = :id',
+                            [
+                                ':title'       => $title,
+                                ':description' => $description,
+                                ':due_date'    => $date,
+                                ':priority'    => $priority,
+                                ':id'          => $id,
+                            ]
+                        );
+                        $notice = 'updated';
                     }
+                } else {
+                    // Give the form back what the person typed and re-open the same
+                    // pop-up, so the errors are shown inside it and nothing is lost
+                    $submitted = [
+                        'title'       => $title,
+                        'description' => $description,
+                        'date'        => $date,
+                        'priority'    => in_array($priority, ['low', 'medium', 'high'], true) ? $priority : 'medium',
+                    ];
 
-                    $_SESSION['tasks'][$id]['status']       = 'completed';
-                    $_SESSION['tasks'][$id]['completed_at'] = $completedOn;
+                    if ($action === 'add') {
+                        $showAddModal = true;
+                        $addForm      = $submitted;
+                    } elseif ($exists) {
+                        $showEditModal = true;
+                        $editForm      = $submitted;
+                        $editId        = (string) $id;
+                    }
                 }
-            }
-            break;
+                break;
 
-        case 'trash':    // DELETE (move to Bin)
-            if ($exists) {
-                $_SESSION['tasks'][$id]['deleted']    = true;
-                $_SESSION['tasks'][$id]['deleted_at'] = time();
-                $_SESSION['flash'] = 'Task moved to Bin.';
-            }
-            break;
+            case 'toggle':   // UPDATE: mark completed / pending
+                if ($exists) {
 
-        case 'restore':  // take it back out of the Bin
-            if ($exists) {
-                $_SESSION['tasks'][$id]['deleted']    = false;
-                $_SESSION['tasks'][$id]['deleted_at'] = null;
-                $_SESSION['flash'] = 'Task restored successfully.';
-            }
-            break;
+                    if ($task['status'] === 'completed') {
+                        runQuery(
+                            $pdo,
+                            "UPDATE tasks SET status = 'pending', completed_at = NULL WHERE id = :id",
+                            [':id' => $id]
+                        );
+                    } else {
+                        // The browser sends its own local date so "completed late"
+                        // matches the person's day, not the server's time zone
+                        $completedOn = postString('completed_on');
+                        $cd = DateTime::createFromFormat('Y-m-d', $completedOn);
+                        if (!$cd || $cd->format('Y-m-d') !== $completedOn) {
+                            $completedOn = date('Y-m-d');
+                        }
 
-        case 'delete':   // DELETE permanently (only tasks that are already in the Bin)
-            if ($exists && !empty($_SESSION['tasks'][$id]['deleted'])) {
-                unset($_SESSION['tasks'][$id]);
-            }
-            break;
-
-        case 'empty_bin':
-            foreach ($_SESSION['tasks'] as $taskId => $task) {
-                if ($task['deleted']) {
-                    unset($_SESSION['tasks'][$taskId]);
+                        runQuery(
+                            $pdo,
+                            "UPDATE tasks SET status = 'completed', completed_at = :completed_at WHERE id = :id",
+                            [':completed_at' => $completedOn, ':id' => $id]
+                        );
+                    }
                 }
-            }
-            break;
+                break;
+
+            case 'trash':    // move to Bin (UPDATE); the 30 days start now
+                if ($exists) {
+                    runQuery(
+                        $pdo,
+                        'UPDATE tasks SET is_deleted = 1, deleted_at = NOW() WHERE id = :id',
+                        [':id' => $id]
+                    );
+                    $notice = 'trashed';
+                }
+                break;
+
+            case 'restore':  // take it back out of the Bin (UPDATE)
+                if ($exists) {
+                    runQuery(
+                        $pdo,
+                        'UPDATE tasks SET is_deleted = 0, deleted_at = NULL WHERE id = :id',
+                        [':id' => $id]
+                    );
+                    $notice = 'restored';
+                }
+                break;
+
+            case 'delete':   // DELETE permanently (only tasks that are already in the Bin)
+                if ($exists) {
+                    runQuery(
+                        $pdo,
+                        'DELETE FROM tasks WHERE id = :id AND is_deleted = 1',
+                        [':id' => $id]
+                    );
+                }
+                break;
+
+            case 'empty_bin': // DELETE every task in the Bin
+                runQuery($pdo, 'DELETE FROM tasks WHERE is_deleted = 1');
+                break;
+        }
+
+    } catch (PDOException $e) {
+        error_log('[Task Manager] Database error while saving: ' . $e->getMessage());
+        $errors = ['Something went wrong while saving your changes. Please try again.'];
+        $notice = null;
     }
 
     // Post/Redirect/Get: refreshing the page will not re-submit the form
     if (empty($errors)) {
-        header('Location: ' . $_SERVER['PHP_SELF']);
+        $redirect = basename($_SERVER['SCRIPT_NAME']);
+
+        if ($notice !== null) {
+            $redirect .= '?notice=' . $notice;
+        }
+
+        header('Location: ' . $redirect);
         exit;
     }
 }
 
-// ---------- READ: split the session tasks into list and Bin ----------
-$activeTasks = array_filter($_SESSION['tasks'], fn($t) => !$t['deleted']);
-$binTasks    = array_filter($_SESSION['tasks'], fn($t) => $t['deleted']);
+// ---------- READ: SELECT the list and the Bin from MySQL ----------
+try {
+    $activeTasks = fetchTasks($pdo, false);
+    $binTasks    = fetchTasks($pdo, true);
+} catch (PDOException $e) {
+    showDatabaseError($e);
+}
 
-// One-time success message (shown as a toast, then forgotten)
-$flash = $_SESSION['flash'] ?? '';
-unset($_SESSION['flash']);
+// One-time success message (shown as a toast). It comes from the fixed list
+// above, so nothing typed into the address bar can ever reach the page.
+$noticeKey = $_GET['notice'] ?? '';
+$flash     = (is_string($noticeKey) && isset($notices[$noticeKey])) ? $notices[$noticeKey] : '';
 ?>
 
 <!DOCTYPE html>
